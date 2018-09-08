@@ -1,0 +1,12 @@
+vertices:
+
+- type: payments.PaymentInstrument
+- type: payments.PaymentProfile
+- type: payments.PaymentBankFingerprint
+
+edges:
+
+- type: payments.registeredPi
+- type: payments.usedPaymentProfile
+- type: payments.usedPi
+- type: payments.usedPaymentBankFingerprint

@@ -1,0 +1,28 @@
+cassandra: core
+keyspace: ugraph_payment
+
+vertices:
+
+- type: payments.PaymentInstrument
+  cassandraTable: payment_instrument
+
+- type: payments.PaymentProfile
+  cassandraTable: payment_profile
+
+- type: payments.PaymentBankFingerprint
+  cassandraTable: payment_fingerprint
+
+edges:
+
+- type: payments.registeredPi
+  cassandraTable: pp_registered_pi
+  
+- type: payments.usedPaymentProfile
+  cassandraTable: user_used_pp
+
+- type: payments.usedPi
+  cassandraTable: user_used_pi
+
+- type: payments.usedPaymentBankFingerprint
+  cassandraTable: user_used_fingerprint
+  timeIndexEnabled: true

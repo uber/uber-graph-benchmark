@@ -1,0 +1,9 @@
+vertices:
+
+- type: trips.Trip
+
+edges:
+
+- type: trips.requested
+- type: trips.droveFor
+- type: trips.paidFor

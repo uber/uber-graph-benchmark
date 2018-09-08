@@ -1,0 +1,12 @@
+cassandra: core
+keyspace: ugraph_document
+
+vertices:
+
+- type: documents.Document
+  cassandraTable: document
+
+edges:
+
+- type: documents.usedDocument
+  cassandraTable: user_used_document

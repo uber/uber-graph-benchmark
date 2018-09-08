@@ -1,0 +1,87 @@
+name: trips
+description: A schema which adds support for drivers, riders and trips
+
+includes:
+  - payments
+
+entities:
+
+  - label: Trip
+    sameAs: http://schema.org/TravelAction
+    description: A single trip taken by a driver or requested by a user
+    extends:
+      - core.StatusThing
+      - users.BannableThing # for createdAt
+    relations:
+      - label: cityId
+        description: The id of the city in which the trip occurred
+        to: core.CityId
+      - label: requestedAt
+        description: The time at which the trip was requested
+        to: core.UnixTimeMs
+      - label: beginAt
+        description: The time at which the trip began
+        to: core.UnixTimeMs
+      - label: beginLat
+        description: The latitude at which the trip began
+        to: core.Latitude
+      - label: beginLng
+        description: The longitude at which the trip began
+        to: core.Longitude
+      - label: dropoffAt
+        description: The time at which the trip concluded with a drop-off
+        to: core.UnixTimeMs
+      - label: dropoffLat
+        description: The latitude of the drop-off
+        to: core.Latitude
+      - label: dropoffLng
+        description: The longitude of the drop-off
+        to: core.Longitude
+      - label: usdFare
+        comment: Deprecated due to decoupled trip model
+        description: The cost of the trip to the rider, in US dollars
+        to: payments.UsdAmount
+      - label: riderUsdFare
+        description: The cost of the trip to the rider, in US dollars
+        to: payments.UsdAmount
+      - label: driverUsdFare
+        description: The cost of the trip to the Driver, in US dollars
+        to: payments.UsdAmount
+      - label: isFakeTrip
+        description: Whether the trip is fake
+        to: core.Boolean
+      - label: flowType
+        description: The flow type of the trip
+        to: core.String
+      - label: predictedEta
+        description: The estimated time of arrival
+        to: core.Decimal
+      - label: fraudStatus
+        description: The fraud status of the trip
+        to: core.String
+
+relations:
+
+  - label: requested
+    description: The relationship between a user and a trip he or she requested
+    extends:
+      - core.relatedTo
+    from: users.User
+    to: Trip
+    cardinality: OneToMany
+
+  - label: droveFor
+    description: The relationship between a user and a trip for which he or she was the driver
+    extends:
+      - core.relatedTo
+    from: users.User
+    to: Trip
+    cardinality: OneToMany
+
+  - label: paidFor
+    description: The relationship between a payment profile and a trip it paid for
+    extends:
+      - core.relatedTo
+    from: payments.PaymentProfile
+    to: Trip
+    cardinality: OneToMany

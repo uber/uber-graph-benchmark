@@ -1,0 +1,48 @@
+name: documents
+description: A schema which adds support for documents and official identifiers
+
+includes:
+  - users
+
+entities:
+
+- label: DocumentType
+  description: An enumerated sub-type for documents
+  extends:
+    - core.String
+  values:
+    - DRIVER_LICENSE
+    - LICENSE_PLATE
+    - NATIONAL_ID
+    - SSN
+
+- label: Document
+  sameAs: http://schema.org/DigitalDocument
+  description: A document with an id
+  extends:
+    - core.StatusThing
+  relations:
+    - label: documentType
+      description: The sub-type of the document. E.g. DRIVER_LICENSE
+      to: DocumentType
+    - label: documentId
+      description: An identifying sequence for a document, such as a driver license number or license plate number
+      to: core.String
+    - label: countryIso2Code
+      description: The country of origin of the document
+      to: core.CountryIso2Code
+    - label: expiresAt
+      description: The expiration time of the document
+      to: core.UnixTimeMs
+
+relations:
+    - label: usedDocument
+      description: The relationship between a user and a document
+      extends:
+        - core.relatedTo
+      from: users.User
+      to: Document
+      relations:
+        - label: status
+          description: The status of the document, such as "active" or "inActive"
+          to: core.String

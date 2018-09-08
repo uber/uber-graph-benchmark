@@ -1,0 +1,13 @@
+cassandra: core
+keyspace: ugraph_referral
+
+edges:
+
+- type: referrals.referredRider
+  cassandraTable: user_referred_rider
+
+- type: referrals.referredEater
+  cassandraTable: user_referred_eater
+
+- type: referrals.referredDriver
+  cassandraTable: user_referred_driver

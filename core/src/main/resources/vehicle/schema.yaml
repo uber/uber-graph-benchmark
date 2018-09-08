@@ -1,0 +1,10 @@
+vertices:
+
+- type: documents.Document
+- type: vehicles.Vehicle
+
+edges:
+
+- type: documents.usedDocument
+- type: vehicles.owner
+- type: vehicles.licensePlate

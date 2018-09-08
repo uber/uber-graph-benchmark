@@ -1,0 +1,143 @@
+name: core
+description: The uGraph core schema
+
+entities:
+
+  - label: Boolean
+    sameAs: http://www.w3.org/2001/XMLSchema#boolean
+    description: The basic boolean data type
+
+  - label: Decimal
+    sameAs: http://www.w3.org/2001/XMLSchema#decimal
+    description: The basic decimal data type
+
+  - label: Double
+    sameAs: http://www.w3.org/2001/XMLSchema#double
+    description: A 64-bit floating point data type
+
+  - label: Float
+    sameAs: http://www.w3.org/2001/XMLSchema#float
+    description: A 32-bit floating-point data type
+
+  - label: Integer
+    sameAs: http://www.w3.org/2001/XMLSchema#integer
+    description: The basic integer data type
+
+  - label: Long
+    sameAs: http://www.w3.org/2001/XMLSchema#long
+    description: The basic long integer data type
+
+  - label: String
+    sameAs: http://www.w3.org/2001/XMLSchema#string
+    description: The basic string data type
+
+  - label: Date
+    sameAs: http://www.w3.org/2001/XMLSchema#date
+    description: A data type used to specify dates
+    extends:
+      - String
+
+  - label: Year
+    sameAs: http://www.w3.org/2001/XMLSchema#gYear
+    description: A numeric year, e.g. 2001
+    extends:
+      - Integer
+
+  - label: UnixTimeMs
+    description: A time stamp in milliseconds since the Unix epoch
+    extends:
+      - Long
+
+  - label: Latitude
+    description: A decimal geographic latitude, ranging from -90.0 ("south") to 90.0 ("north")
+    extends:
+      - Decimal
+
+  - label: Longitude
+    description: A decimal geographic longitude, ranging from -180.0 ("west") to 180.0 ("east")
+    extends:
+      - Decimal
+
+  - label: CityId
+    description: The unique ID of a city
+    extends:
+      - Long
+
+  - label: PhoneNumber
+    description: A valid phone number
+    extends:
+      - String
+
+  - label: EmailAddress
+    description: A valid email address
+    extends:
+      - String
+
+  - label: CountryIso2Code
+    sameAs: http://schema.org/Country
+    description: An ISO 3166-1 alpha-2 country identifier, such as "US" or "CA"
+    extends:
+      - String
+
+  - label: Map
+    description: A logical Map value, expressed in JSON. For now, the type and semantics of key and value are implicit
+    extends:
+      - String
+
+  - label: List
+    description: A comma separated list of values
+    extends:
+      - core.String
+
+  - label: ListOfMaps
+    description: A comma separated list of maps (JSONs)
+    extends:
+      - core.String
+
+  - label: Thing
+    sameAs: http://schema.org/Thing
+    description: A base type for all things described in the graph
+    abstract: true
+    relations:
+      - label: isDeletedEntity
+        description: Soft deletion indicator
+        to: Boolean
+
+  - label: StatusThing
+    description: Anything with a status (e.g. a user or a trip)
+    abstract: true
+    extends:
+      - Thing
+    relations:
+      - label: status
+        description: Status of a resource, e.g., "blacklisted"
+        to: String
+
+  - label: NamedThing
+    description: Anything with a name (e.g. a device or a tag)
+    abstract: true
+    extends:
+      - Thing
+    relations:
+      - label: name
+        description: A human-readable name
+        to: String
+
+relations:
+
+  - label: relatedTo
+    description: A base for all relationships with createdAt/updatedAt/deletedAt metadata
+    abstract: true
+    relations:
+      - label: createdAt
+        description: The transaction time at which a relationship was added to the data store
+        to: UnixTimeMs
+      - label: updatedAt
+        description: The transaction time at which a relationship was updated in the data store
+        to: UnixTimeMs
+      - label: deletedAt
+        description: The transaction time at which a relationship was logically deleted from the data store
+        to: UnixTimeMs
+      - label: isDeletedRelation
+        description: Soft deletion indicator
+        to: Boolean

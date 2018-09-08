@@ -1,0 +1,115 @@
+name: users
+description: A schema for describing Uber users
+
+includes:
+  - core
+
+entities:
+
+  - label: BannableThing
+    description: >
+      A thing, such as a user or payment profile, which is involved in business transactions.
+      These things can be active or "banned".
+    abstract: true
+    extends:
+      - core.Thing
+    relations:
+      - label: isBanned
+        description: Indicates that a thing is banned in Uber
+        to: core.Boolean
+      - label: createdAt
+        description: The transaction time at which an entity was added to the data store
+        to: core.UnixTimeMs
+        comment: Currently used with LegacyDevice and PaymentProfile. Move up to Thing.
+
+  - label: User
+    description: Any transactional user of the system, including drivers and riders
+    extends:
+      - core.Thing
+    relations:
+      - label: isBannedClient
+        description: Whether a user is banned in Uber
+        to: core.Boolean
+      - label: isClient
+        description: Whether a user is a client (rider)
+        to: core.Boolean
+      - label: isDriver
+        description: Whether a user is a driver
+        to: core.Boolean
+      - label: driverStatus
+        description: Current status of the driver (Active, Rejected, Waitlisted, etc.)
+        to: core.String
+      - label: driverSignupCityId
+        description: City where the driver signed up
+        to: core.CityId
+      - label: clientSignupCityId
+        description: City in which the user signed up
+        to: core.CityId
+      - label: driverSignupEpoch
+        description: Time at which the driver signed up
+        to: core.UnixTimeMs
+      - label: clientSignupEpoch
+        description: Time at which the client signed up
+        to: core.UnixTimeMs
+      - label: mobile
+        description: The user's mobile number
+        to: core.PhoneNumber
+      - label: contactNumber
+        description: The contact phone number of a user
+        to: core.PhoneNumber
+      - label: email
+        description: The contact email address of a user
+        to: core.EmailAddress
+      - label: isUberEmail
+        description: Whether the user's email domain is '@uber.com'
+        comment: used in conjunction with the 'email' relation
+        to: core.Boolean
+      - label: isPartner
+        description: Indicates whether or not driver is also a partner
+        to: core.Boolean
+      - label: promotionCode
+        description: User's unique promotion_code
+        to: core.String
+      - label: signupForm
+        description: User's signup form (e.g. 'iphone', 'android', 'website', 'website_invite', etc.)
+        to: core.String
+      - label: rating
+        description: User's lifetime rating. When a user has less than 5 rated trips this field will be null
+        to: core.Decimal
+      - label: signupLat
+        description: Signup latitude
+        to: core.Decimal
+      - label: signupLng
+        description: Signup longitude
+        to: core.Decimal
+      - label: firstname
+        description: a user's first name
+        comment: migrate back to firstName
+        to: core.String
+      - label: lastname
+        description: a user's last name
+        comment: migrate back to lastName
+        to: core.String
+      - label: clientPicture
+        description: Picture of the client as a file name
+        to: core.String
+      - label: driverPicture
+        description: Picture of the driver as a file name
+        to: core.String
+      - label: birthDate
+        sameAs: http://schema.org/birthDate
+        description: the birth date of a user
+        to: core.Date
+      - label: isInArrears
+        description: Indicates whether the user is in arrears or not
+        to: core.Boolean
+      # TODO: Temporarily store arrears as raw json string, standardize the json as maps
+      - label: arrears
+        description: Json map of the user's arrears in the form currencyCode to arrearsAmount
+        to: core.Map
+      - label: isEater
+        description: Whether a user is an Eats user
+        to: core.Boolean
+      - label: isCourier
+        description: Whether a user is an Eats courier
+        to: core.Boolean

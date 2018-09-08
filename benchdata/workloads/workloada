@@ -1,0 +1,7 @@
+graph=trips
+
+write.vertex.count=100000
+write.seed=12345
+
+read.thread.count=16
+read.operation.count=10000

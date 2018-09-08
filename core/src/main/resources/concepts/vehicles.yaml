@@ -1,0 +1,66 @@
+name: vehicles
+description: A schema for describing cars and other vehicles
+
+includes:
+- documents
+
+entities:
+
+- label: ColorHex
+  description: A color as a six-digit hex value
+  extends:
+  - core.String
+
+- label: VehicleIdentificationNumber
+  description: >
+    A unique code, including a serial number, used by the automotive industry to identify individual motor vehicles, towed vehicles, motorcycles, scooters and mopeds, as defined in ISO 3779:2009
+  comment: See https://en.wikipedia.org/wiki/Vehicle_identification_number
+  extends:
+  - core.String
+
+- label: Vehicle
+  sameAs: http://schema.org/Vehicle
+  description: A vehicle such as a car, bicycle, or aircraft
+  relations:
+  - label: owner
+    to: users.User
+    cardinality: ManyToOne
+    required: true
+    description: The owner of the vehicle
+    extends:
+      - core.relatedTo
+  - label: licensePlate
+    to: documents.Document
+    cardinality: ManyToOne
+    description: >
+      The license plate associated with a vehicle. The license plate number is ideally, though not always, unique among vehicles
+    extends:
+      - core.relatedTo
+  - label: vin
+    sameAs: http://schema.org/vehicleIdentificationNumber
+    description: The VIN (vehicle identification number) of a vehicle
+    to: VehicleIdentificationNumber
+  - label: city
+    description: The city associated with the vehicle
+    to: core.CityId
+  - label: make
+    sameAs: http://schema.org/manufacturer
+    description: The manufacturer of the vehicle, i.e. the company that produces it
+    to: core.String
+  - label: model
+    sameAs: http://schema.org/model
+    description: The model of the vehicle, i.e. the name that the manufacturer has given to it
+    to: core.String
+  - label: trim
+    description: A name used by manufacturers to identify a vehicle's level of equipment or special features
+    comment: See https://en.wikipedia.org/wiki/Trim_level_(automobile)
+    to: core.String
+  - label: year
+    sameAs: http://schema.org/vehicleModelDate
+    description: >
+      The year associated with the vehicle make and model. This is not necessarily the year the vehicle itself was manufactured.
+    to: core.Year
+  - label: color
+    sameAs: http://schema.org/color
+    description: The color of the vehicle
+    to: ColorHex

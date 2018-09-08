@@ -1,0 +1,22 @@
+.*
+!.arcconfig
+!.gitignore
+!.gitmodules
+!.jenkins/
+!.scaffold.yaml
+
+# Java
+*.class
+
+# Intellij
+*.iml
+*.iws
+
+# Gradle
+build/
+classes/
+generated/
+
+log/
+tmp/
+out/

@@ -1,0 +1,22 @@
+name: production
+
+includes:
+  - core
+  - documents
+  - payments
+  - referrals
+  - trips
+  - users
+  - vehicles
+
+indexes:
+
+  - key: trips.requested
+    direction: OUT
+    orderBy: core.createdAt
+    order: decr
+
+  - key: trips.droveFor
+    direction: OUT
+    orderBy: core.createdAt
+    order: decr

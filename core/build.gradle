@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+}
+
+group 'com.uber.ugsb'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    tinkerPopGroup = 'org.apache.tinkerpop'
+    gremlinConsoleName = 'gremlin-console'
+    tinkerPopVersion = '3.2.3'
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.5'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.0'
+    compile 'commons-io:commons-io:2.4'
+    compile 'com.google.guava:guava:26.0-jre'
+    compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.2'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.9.2'
+    compile (group: tinkerPopGroup, name: 'gremlin-driver', version: tinkerPopVersion)
+    compile (group: tinkerPopGroup, name: 'tinkergraph-gremlin', version: tinkerPopVersion)
+    compile group: 'org.apache.tinkerpop', name: 'gremlin-groovy', version: tinkerPopVersion
+    compile group: 'de.ruedigermoeller', name: 'fst', version: '2.56'
+    compile group: 'junit', name: 'junit', version: '4.8.1'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+

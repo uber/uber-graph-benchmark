@@ -1,0 +1,4 @@
+rootProject.name = 'ugsb'
+include 'core'
+include 'redis'
+

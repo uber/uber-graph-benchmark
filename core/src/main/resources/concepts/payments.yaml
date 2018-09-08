@@ -1,0 +1,87 @@
+name: payments
+description: A schema which adds support for payment transactions
+
+includes:
+  - users
+
+entities:
+
+  - label: UsdAmount
+    description: a monetary value in US dollars
+    extends:
+      - core.Decimal
+    comment: see http://schema.org/MonetaryAmount
+
+  - label: PaymentProfile
+    description: The use of an instrument such as a credit card to pay for a service such as a trip
+    extends:
+      - users.BannableThing
+    relations:
+      - label: registeredPi
+        description: The payment instrument associated with a payment profile
+        extends:
+          - core.relatedTo
+        to: PaymentInstrument
+        cardinality: OneToMany
+      - label: cardExpiresAt
+        description: The expiration time of a credit or debit card
+        to: core.UnixTimeMs
+        comment: previously attached to PaymentInstrument
+
+  - label: PaymentInstrument
+    sameAs: http://schema.org/PaymentMethod
+    description: A payment instrument such as a credit or debit card
+    extends:
+      - core.Thing
+    relations:
+      - label: tokenHandle
+        description: The token handle of a payment instrument
+        to: core.String
+      - label: tokenType
+        description: The token type of a payment instrument
+        to: core.String
+      - label: issuingCountryCode
+        description: The country of the payment instrument, such as "US" or "CA"
+        to: core.CountryIso2Code
+      - label: issuingBank
+        description: The issuing bank of a payment instrument
+        to: core.String
+      - label: cardBin
+        description: The Bank Identification Number (BIN) of a payment instrument
+        to: core.String
+
+  - label: PaymentBankFingerprint
+    description: A payment fingerprint of a bank account/card.
+    relations:
+      - label: tokenProvider
+        description: The token value provider
+        to: core.String
+      - label: domain
+        description: The type of fingerprint, "bank-card" or "ssn"
+        to: core.String
+      - label: type
+        description: token type
+        to: core.String
+
+relations:
+
+      - label: usedPi
+        description: The relationship between a user and a payment instrument he/she has used at least once
+        extends:
+          - core.relatedTo
+        from: users.User
+        to: PaymentInstrument
+
+      - label: usedPaymentBankFingerprint
+        description: The relationship between a user and a payment bank account/card fingerprint he/she has used at least once
+        extends:
+          - core.relatedTo
+        from: users.User
+        to: PaymentBankFingerprint
+
+      - label: usedPaymentProfile
+        description: The relationship between a user and a payment profile he/she has used at least once
+        extends:
+          - core.relatedTo
+        from: users.User
+        to: PaymentProfile
