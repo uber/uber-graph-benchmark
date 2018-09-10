@@ -1,15 +1,8 @@
 plugins {
-    id 'java'
 }
 
 group 'com.uber.ugsb'
 version '1.0-SNAPSHOT'
-
-sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
 
 ext {
     tinkerPopGroup = 'org.apache.tinkerpop'
@@ -32,7 +25,9 @@ dependencies {
     compile group: 'org.apache.tinkerpop', name: 'gremlin-groovy', version: tinkerPopVersion
     compile group: 'de.ruedigermoeller', name: 'fst', version: '2.56'
     compile group: 'junit', name: 'junit', version: '4.8.1'
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
+
 

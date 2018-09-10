@@ -9,8 +9,6 @@ import com.uber.ugsb.model.SimpleProperty;
 import com.uber.ugsb.model.distro.DegreeDistribution;
 import com.uber.ugsb.schema.model.RelationType;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * A utility which creates property graphs in accordance with a given statistical model.
@@ -37,7 +36,7 @@ public class GraphGenerator {
     // two distinct generated graphs sharing a name.
     static final String VERSION = "v1";
 
-    private static final Logger logger = LoggerFactory.getLogger(GraphGenerator.class);
+    private static Logger logger = Logger.getLogger(GraphGenerator.class.getName());
 
     private final GraphModel model;
     private Map<String, IndexSet<Integer>> vertexPartition;
@@ -191,6 +190,7 @@ public class GraphGenerator {
             String label = e.getKey();
             PropertyModel props = model.getVertexPropertyModels().get(label);
             Integer nVertices = e.getValue().size();
+            logger.info("generating " + nVertices + " " + label + "...");
             for (int i = 0; i < nVertices; i++) {
                 createVertex(label, i, graph, props);
             }
@@ -241,6 +241,7 @@ public class GraphGenerator {
         DegreeDistribution.Sample rangeSample
             = edgeStats.getRandeIncidence().getDegreeDistribution().createSample(rangeSubset.size(), random);
 
+        logger.info("generating edges: from " + domainLabel + " to " + rangeLabel + "...");
         for (int i = 0; i < domainSubset.size; i++) {
             int tailIndex = domainSubset.get(i);
             // TODO: account for degree == 0

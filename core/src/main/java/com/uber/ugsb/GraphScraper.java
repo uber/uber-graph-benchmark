@@ -36,7 +36,7 @@ public class GraphScraper {
                 try {
                     todos.put(db.genVertexId(query.startVertexLabel, index));
                 } catch (InterruptedException e) {
-                    return;
+                    continue;
                 }
             }
         });

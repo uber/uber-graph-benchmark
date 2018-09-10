@@ -68,8 +68,14 @@ public class KeyValueDB extends AbstractSubgraphDB {
         byte[] backwardEdgeKey = genEdgeKey(edgeLabel, inVertexId, true);
         byte[] forwardEdgeValue = kvs.get(forwardEdgeKey);
         byte[] backwardEdgeValue = kvs.get(backwardEdgeKey);
-        kvs.put(forwardEdgeKey, appendToAdjacencyList(forwardEdgeValue, inVertexId, edgeProperties));
-        kvs.put(backwardEdgeKey, appendToAdjacencyList(backwardEdgeValue, outVertexId, edgeProperties));
+        byte[] forwardAdjacencyList = appendToAdjacencyList(forwardEdgeValue, inVertexId, edgeProperties);
+        byte[] backwardAdjacencyList = appendToAdjacencyList(backwardEdgeValue, outVertexId, edgeProperties);
+        if (forwardAdjacencyList != null) {
+            kvs.put(forwardEdgeKey, forwardAdjacencyList);
+        }
+        if (backwardAdjacencyList != null) {
+            kvs.put(backwardEdgeKey, backwardAdjacencyList);
+        }
         return Status.OK;
     }
 
@@ -78,19 +84,33 @@ public class KeyValueDB extends AbstractSubgraphDB {
         Edge edge = new Edge();
         edge.nextVertexId = vertexId;
         edge.edgeProperties = edgeProperties;
-        adjancencyList.add(edge);
+        boolean found = false;
+        for (Edge e : adjancencyList) {
+            if (e.nextVertexId.equals(edge.nextVertexId)) {
+                if (e.edgeProperties.equals(edgeProperties)) {
+                    return null;
+                } else {
+                    e.edgeProperties = edge.edgeProperties;
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            adjancencyList.add(edge);
+        }
         return conf.asByteArray(adjancencyList);
     }
 
     private byte[] genVertexKey(String label, Object id) {
-        return (label + Separator + id).getBytes();
+        return (id + Separator + label).getBytes();
     }
 
     private byte[] genEdgeKey(String edgeLabel, Object startVertexId, boolean isBackward) {
         if (!isBackward) {
-            return (edgeLabel + Separator + startVertexId).getBytes();
+            return (startVertexId + Separator + edgeLabel).getBytes();
         }
-        return (edgeLabel + REVERSE_SUFFIX + Separator + startVertexId).getBytes();
+        return (startVertexId + Separator + edgeLabel + REVERSE_SUFFIX).getBytes();
     }
 
     protected List<Edge> readEdgeList(byte[] edgeListBytes) {
