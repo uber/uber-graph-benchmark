@@ -1,7 +1,7 @@
 plugins {
 }
 
-group 'com.uber.ugsb'
+group 'com.uber.ugb'
 version '1.0-SNAPSHOT'
 
 dependencies {

@@ -1,4 +1,4 @@
-Uber Graph Service Benchmark (UGSB)
+Uber Graph Benchmark (UGB)
 ====================================
 
 Getting Started
@@ -17,5 +17,5 @@ Getting Started
   Here is an example of running RedisDB
 
   ```sh
-  ./gradlew execute -PmainArgs="-db com.uber.ugsb.db.redis.RedisDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r"
+  ./gradlew execute -PmainArgs="-db com.uber.ugb.db.redis.RedisDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r"
   ```

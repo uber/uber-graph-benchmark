@@ -3,7 +3,7 @@ plugins {
     id 'application'
 }
 
-group 'com.uber.ugsb'
+group 'com.uber.ugb'
 version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
@@ -33,7 +33,7 @@ subprojects {
 }
 
 task execute(type: JavaExec) {
-    main = 'com.uber.ugsb.Benchmark'
+    main = 'com.uber.ugb.Benchmark'
     classpath = sourceSets.main.runtimeClasspath
     if (project.hasProperty('mainArgs')) {
         args(mainArgs.split(' '))

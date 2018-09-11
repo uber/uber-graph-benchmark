@@ -1,4 +1,4 @@
-rootProject.name = 'ugsb'
+rootProject.name = 'ugb'
 include 'core'
 include 'redis'
 
