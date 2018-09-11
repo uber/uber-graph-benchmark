@@ -273,9 +273,7 @@ public class GraphGenerator {
                 i += 2;
             }
         }
-        graph.getMetrics().writeVertex.measure(() -> {
-            graph.writeVertex(label, vertexId, params);
-        });
+        graph.writeVertex(label, vertexId, params);
         incrementBatchCounter(graph);
     }
 
@@ -286,9 +284,7 @@ public class GraphGenerator {
         Object tailId = graph.genVertexId(tailLabel, tailIndex);
         Object headId = graph.genVertexId(headLabel, headIndex);
 
-        graph.getMetrics().writeEdge.measure(() -> {
-            graph.writeEdge(label, tailLabel, tailId, headLabel, headId);
-        });
+        graph.writeEdge(label, tailLabel, tailId, headLabel, headId);
 
         incrementBatchCounter(graph);
     }

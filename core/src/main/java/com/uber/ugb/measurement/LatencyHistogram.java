@@ -1,6 +1,7 @@
 package com.uber.ugb.measurement;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LatencyHistogram implements Measurement {
     private final long[] usBuckets;
@@ -8,8 +9,8 @@ public class LatencyHistogram implements Measurement {
     private final long[] secBuckets;
     private final String name;
     private long overflowCount;
-    private long operations;
-    private long totalLatencyNs;
+    private AtomicLong operations;
+    private AtomicLong totalLatencyNs;
     private long minNs;
     private long maxNs;
     private StreamingStandardDeviation std;
@@ -21,12 +22,14 @@ public class LatencyHistogram implements Measurement {
         secBuckets = new long[3600];
         minNs = -1;
         maxNs = -1;
+        this.operations = new AtomicLong();
+        this.totalLatencyNs = new AtomicLong();
         this.std = new StreamingStandardDeviation();
     }
 
     @Override
     public boolean hasData() {
-        return this.operations > 0;
+        return this.operations.get() > 0;
     }
 
     /**
@@ -53,8 +56,8 @@ public class LatencyHistogram implements Measurement {
             }
         }
 
-        operations++;
-        totalLatencyNs += latencyNs;
+        operations.incrementAndGet();
+        totalLatencyNs.addAndGet(latencyNs);
 
         if ((minNs < 0) || (latencyNs < minNs)) {
             minNs = latencyNs;
@@ -78,9 +81,10 @@ public class LatencyHistogram implements Measurement {
 
     @Override
     public void printout(MetricsOutput out) throws IOException {
-        double meanNs = totalLatencyNs / ((double) operations);
+        double operationCount = (double) operations.get();
+        double meanNs = totalLatencyNs.get() / operationCount;
         double variance = std.getStandardDeviation();
-        out.write(name, "Operations", operations);
+        out.write(name, "Operations", operations.get());
         out.write(name, "Average(us)", meanNs / 1000d);
         out.write(name, "Variance(us)", variance / 1000d);
         out.write(name, "Min(us)", minNs / 1000d);
@@ -91,11 +95,11 @@ public class LatencyHistogram implements Measurement {
         boolean done99th = false;
         for (int i = 0; i < usBuckets.length; i++) {
             opcounter += usBuckets[i];
-            if ((!done95th) && (((double) opcounter) / ((double) operations) >= 0.95)) {
+            if ((!done95th) && (((double) opcounter) / operationCount >= 0.95)) {
                 out.write(name, "95thPercentile(us)", i);
                 done95th = true;
             }
-            if ((!done99th) && ((double) opcounter) / ((double) operations) >= 0.99) {
+            if ((!done99th) && ((double) opcounter) / operationCount >= 0.99) {
                 out.write(name, "99thPercentile(us)", i);
                 done99th = true;
                 break;
@@ -103,11 +107,11 @@ public class LatencyHistogram implements Measurement {
         }
         for (int i = 0; i < msBuckets.length; i++) {
             opcounter += msBuckets[i];
-            if ((!done95th) && (((double) opcounter) / ((double) operations) >= 0.95)) {
+            if ((!done95th) && (((double) opcounter) / operationCount >= 0.95)) {
                 out.write(name, "95thPercentile(ms)", i);
                 done95th = true;
             }
-            if ((!done99th) && ((double) opcounter) / ((double) operations) >= 0.99) {
+            if ((!done99th) && ((double) opcounter) / operationCount >= 0.99) {
                 out.write(name, "99thPercentile(ms)", i);
                 done99th = true;
                 break;
@@ -115,11 +119,11 @@ public class LatencyHistogram implements Measurement {
         }
         for (int i = 0; i < secBuckets.length; i++) {
             opcounter += secBuckets[i];
-            if ((!done95th) && (((double) opcounter) / ((double) operations) >= 0.95)) {
+            if ((!done95th) && (((double) opcounter) / operationCount >= 0.95)) {
                 out.write(name, "95thPercentile(second)", i);
                 done95th = true;
             }
-            if ((!done99th) && ((double) opcounter) / ((double) operations) >= 0.99) {
+            if ((!done99th) && ((double) opcounter) / operationCount >= 0.99) {
                 out.write(name, "99thPercentile(second)", i);
                 break;
             }

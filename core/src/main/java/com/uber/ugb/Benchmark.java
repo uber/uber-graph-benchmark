@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.uber.ugb.db.DB;
 import com.uber.ugb.db.NoopDB;
+import com.uber.ugb.db.ParallelWriteDBWrapper;
 import com.uber.ugb.queries.QueriesSpec;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -25,6 +26,7 @@ public class Benchmark {
 
     public static final String WRITE_VERTEX_COUNT_PROPERTY = "write.vertex.count";
     public static final String WRITE_SEED_PROPERTY = "write.seed";
+    public static final String WRITE_THREAD_COUNT_PROPERTY = "write.thread.count";
     public static final String READ_THREAD_COUNT_PROPERTY = "read.thread.count";
     public static final String READ_OPERATION_COUNT_PROPERTY = "read.operation.count";
     public static Logger logger = Logger.getLogger(Benchmark.class.getName());
@@ -66,12 +68,14 @@ public class Benchmark {
             Properties prop = collectProperties(workloadFile);
 
             int operationCount = Integer.valueOf(prop.getProperty(READ_OPERATION_COUNT_PROPERTY, "1"));
-            int concurrency = Integer.valueOf(prop.getProperty(READ_THREAD_COUNT_PROPERTY, "16"));
+            int writeConcurrency = Integer.valueOf(prop.getProperty(WRITE_THREAD_COUNT_PROPERTY, "16"));
+            int readConcurrency = Integer.valueOf(prop.getProperty(READ_THREAD_COUNT_PROPERTY, "16"));
             int totalVertices = Integer.valueOf(prop.getProperty(WRITE_VERTEX_COUNT_PROPERTY, "0"));
             int seed = Integer.valueOf(prop.getProperty(WRITE_SEED_PROPERTY, "12345"));
 
             System.out.println(READ_OPERATION_COUNT_PROPERTY + "=" + operationCount);
-            System.out.println(READ_THREAD_COUNT_PROPERTY + "=" + concurrency);
+            System.out.println(WRITE_THREAD_COUNT_PROPERTY + "=" + writeConcurrency);
+            System.out.println(READ_THREAD_COUNT_PROPERTY + "=" + readConcurrency);
             System.out.println(WRITE_VERTEX_COUNT_PROPERTY + "=" + totalVertices);
             System.out.println(WRITE_SEED_PROPERTY + "=" + seed);
 
@@ -91,12 +95,17 @@ public class Benchmark {
 
                 if (hasWrite) {
 
+                    ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(db, writeConcurrency);
+                    pdb.startup();
+
                     gen.setTransactionListener(() -> {
                         System.out.print(".");
                         System.out.flush();
                     });
 
-                    gen.generateTo(db, totalVertices);
+                    gen.generateTo(pdb, totalVertices);
+
+                    pdb.shutdown();
 
                     logger.info("write done");
 
@@ -106,7 +115,7 @@ public class Benchmark {
 
                     String queriesPath = graphDir + "/queries.yaml";
 
-                    benchmarkQueries(gen, seed, totalVertices, db, queriesPath, operationCount, concurrency);
+                    benchmarkQueries(gen, seed, totalVertices, db, queriesPath, operationCount, readConcurrency);
 
                     logger.info("read done");
 
@@ -191,7 +200,7 @@ public class Benchmark {
         File envPropFile = new File(new File(workloadFilePath).getParentFile(), "env.properties");
         if (envPropFile.exists()) {
             Properties envProp = readProperties(envPropFile.getAbsolutePath());
-            for (String k : envProp.stringPropertyNames()){
+            for (String k : envProp.stringPropertyNames()) {
                 prop.setProperty(k, envProp.getProperty(k));
             }
         }

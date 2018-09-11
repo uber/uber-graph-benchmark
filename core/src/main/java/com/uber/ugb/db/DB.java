@@ -18,7 +18,7 @@ public abstract class DB {
      */
     private Properties properties = new Properties();
 
-    private Metrics metrics;
+    private Metrics metrics = new Metrics();
 
     protected static Properties extractProperties(Properties properties, String select, String filterField) {
         if (Strings.isNullOrEmpty(select)) {
@@ -51,9 +51,6 @@ public abstract class DB {
     }
 
     public Metrics getMetrics() {
-        if (metrics == null) {
-            metrics = new Metrics();
-        }
         return metrics;
     }
 
