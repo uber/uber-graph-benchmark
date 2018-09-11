@@ -1,6 +1,6 @@
 graph=trips
 
-write.vertex.count=100000
+write.vertex.count=2147483640
 write.seed=12345
 
 read.thread.count=16

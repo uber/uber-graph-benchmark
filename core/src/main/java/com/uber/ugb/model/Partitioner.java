@@ -26,7 +26,7 @@ public class Partitioner implements Serializable {
         int firstIndex = 0;
         for (Map.Entry<String, Integer> e : weightByLabel.entrySet()) {
             String label = e.getKey();
-            int weight = Math.min(remaining, (int) (total * e.getValue() / totalWeight));
+            int weight = Math.min(remaining, (int) (total * (e.getValue() * 1.0f / totalWeight)));
             GraphGenerator.IntervalSet vertices = new GraphGenerator.IntervalSet(firstIndex, weight);
             firstIndex += weight;
             remaining -= weight;

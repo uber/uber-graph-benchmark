@@ -63,8 +63,7 @@ public class Benchmark {
                 System.out.println("-w");
             }
 
-            Properties prop = readProperties(workloadFile);
-            prop = envOverwrite(prop);
+            Properties prop = collectProperties(workloadFile);
 
             int operationCount = Integer.valueOf(prop.getProperty(READ_OPERATION_COUNT_PROPERTY, "1"));
             int concurrency = Integer.valueOf(prop.getProperty(READ_THREAD_COUNT_PROPERTY, "16"));
@@ -187,12 +186,18 @@ public class Benchmark {
 
     }
 
-    private static Properties envOverwrite(Properties properties) {
-        Map<String, String> env = System.getenv();
-        for (Map.Entry<String, String> entry : env.entrySet()) {
-            properties.setProperty(entry.getKey(), entry.getValue());
+    private static Properties collectProperties(String workloadFilePath) {
+        Properties prop = readProperties(workloadFilePath);
+        File envPropFile = new File(new File(workloadFilePath).getParentFile(), "env.properties");
+        if (envPropFile.exists()) {
+            Properties envProp = readProperties(envPropFile.getAbsolutePath());
+            for (String k : envProp.stringPropertyNames()){
+                prop.setProperty(k, envProp.getProperty(k));
+            }
         }
-        return properties;
+        Map<String, String> env = System.getenv();
+        prop.putAll(env);
+        return prop;
     }
 
     private static DB loadDbFromClassName(String dbname) throws Exception {
