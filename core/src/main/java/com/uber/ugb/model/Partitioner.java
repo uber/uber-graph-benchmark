@@ -1,6 +1,5 @@
 package com.uber.ugb.model;
 
-import com.uber.ugb.GraphGenerator;
 import com.uber.ugb.schema.Vocabulary;
 
 import java.io.Serializable;
@@ -18,19 +17,16 @@ public class Partitioner implements Serializable {
         weightByLabel.put(label, weight);
     }
 
-    public Map<String, GraphGenerator.IndexSet<Integer>> getPartition(final int total) {
+    public Map<String, Long> getPartitionSizes(final long total) {
         // use an order-preserving map
-        Map<String, GraphGenerator.IndexSet<Integer>> partition = new LinkedHashMap<>();
-        int remaining = total;
+        Map<String, Long> partition = new LinkedHashMap<>();
+        long remaining = total;
         float totalWeight = (float) findTotalWeight();
-        int firstIndex = 0;
         for (Map.Entry<String, Integer> e : weightByLabel.entrySet()) {
             String label = e.getKey();
-            int weight = Math.min(remaining, (int) (total * (e.getValue() * 1.0f / totalWeight)));
-            GraphGenerator.IntervalSet vertices = new GraphGenerator.IntervalSet(firstIndex, weight);
-            firstIndex += weight;
+            long weight = Math.min(remaining, (long) (total * (e.getValue() * 1.0f / totalWeight)));
             remaining -= weight;
-            partition.put(label, vertices);
+            partition.put(label, weight);
         }
         return partition;
     }

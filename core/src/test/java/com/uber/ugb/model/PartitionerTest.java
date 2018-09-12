@@ -1,6 +1,5 @@
 package com.uber.ugb.model;
 
-import com.uber.ugb.GraphGenerator;
 import org.junit.Test;
 
 import java.util.Map;
@@ -17,11 +16,11 @@ public class PartitionerTest {
         partitioner.put("two", 2);
         partitioner.put("four", 4);
 
-        Map<String, GraphGenerator.IndexSet<Integer>> partition = partitioner.getPartition(70);
-        assertEquals(0, partition.get("zero").size());
-        assertEquals(10, partition.get("one").size());
-        assertEquals(20, partition.get("two").size());
-        assertEquals(40, partition.get("four").size());
+        Map<String, Long> partition = partitioner.getPartitionSizes(70);
+        assertEquals(true, partition.get("zero") == 0);
+        assertEquals(true, partition.get("one") == 10);
+        assertEquals(true, partition.get("two") == 20);
+        assertEquals(true, partition.get("four") == 40);
         assertNull(partition.get("five"));
     }
 
@@ -32,15 +31,15 @@ public class PartitionerTest {
         partitioner.put("trip", 8);
         partitioner.put("document", 1);
 
-        Map<String, GraphGenerator.IndexSet<Integer>> partition = partitioner.getPartition(1000000000);
+        Map<String, Long> partition = partitioner.getPartitionSizes(1000000000);
 
         // System.out.println("user:" + partition.get("user").size());
         // System.out.println("trip:" + partition.get("trip").size());
         // System.out.println("document:" + partition.get("document").size());
 
-        assertEquals(true, partition.get("user").size() > 0);
-        assertEquals(true, partition.get("trip").size() > 0);
-        assertEquals(true, partition.get("document").size() > 0);
+        assertEquals(true, partition.get("user") > 0);
+        assertEquals(true, partition.get("trip") > 0);
+        assertEquals(true, partition.get("document") > 0);
     }
 
 }

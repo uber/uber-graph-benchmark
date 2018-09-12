@@ -39,7 +39,7 @@ public class GraphGenerator {
     private static Logger logger = Logger.getLogger(GraphGenerator.class.getName());
 
     private final GraphModel model;
-    private Map<String, IndexSet<Integer>> vertexPartition;
+    private Map<String, Long> vertexPartition;
     private long batchSize = 1000;
     private int batchCounter = 0;
     private Runnable transactionListener;
@@ -84,7 +84,7 @@ public class GraphGenerator {
         return model;
     }
 
-    public Map<String, IndexSet<Integer>> getVertexPartition() {
+    public Map<String, Long> getVertexPartition() {
         return vertexPartition;
     }
 
@@ -137,7 +137,7 @@ public class GraphGenerator {
      * @param graph         the property graph to which generated elements are to be added
      * @param totalVertices the size of the generated graph, in terms of vertices
      */
-    public synchronized void generateTo(final DB graph, final int totalVertices) throws IOException {
+    public synchronized void generateTo(final DB graph, final long totalVertices) throws IOException {
         Preconditions.checkNotNull(graph);
         Preconditions.checkArgument(totalVertices > 0);
         // verifyGraphIsEmpty(graph); // this does not work since Ugsf does not support fetching all vertices.
@@ -145,8 +145,10 @@ public class GraphGenerator {
         createCsvOutputs();
         graph.setVocabulary(getModel().getSchemaVocabulary());
 
+        vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
+
         long time = timeTask(() -> {
-            createVertices(graph, totalVertices);
+            createVertices(graph);
             createEdges(graph);
             commit(graph);
         });
@@ -183,15 +185,13 @@ public class GraphGenerator {
         });
     }
 
-    private void createVertices(final DB graph, final int totalVertices) throws IOException {
-        vertexPartition = model.getVertexPartitioner().getPartition(totalVertices);
-        for (Map.Entry<String, IndexSet<Integer>> e
-            : vertexPartition.entrySet()) {
+    private void createVertices(final DB graph) throws IOException {
+        for (Map.Entry<String, Long> e : vertexPartition.entrySet()) {
             String label = e.getKey();
             PropertyModel props = model.getVertexPropertyModels().get(label);
-            Integer nVertices = e.getValue().size();
+            long nVertices = e.getValue();
             logger.info("generating " + nVertices + " " + label + "...");
-            for (int i = 0; i < nVertices; i++) {
+            for (long i = 0; i < nVertices; i++) {
                 createVertex(label, i, graph, props);
             }
         }
@@ -221,42 +221,54 @@ public class GraphGenerator {
     }
 
     private void createEdges(final String edgeLabel, final EdgeModel edgeStats, final DB graph) {
+
         String domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
         String rangeLabel = edgeStats.getRandeIncidence().getVertexLabel();
 
-        IndexSet<Integer> domainSet = vertexPartition.get(domainLabel);
-        IndexSet<Integer> rangeSet = vertexPartition.get(rangeLabel);
+        long domainSize = vertexPartition.get(domainLabel);
+        long rangeSize = vertexPartition.get(rangeLabel);
+
+        int domainBucketWidth = domainSize > 1024 * 1024 ? 1024 : 1;
+        int rangeBucketWidth = rangeSize > 1024 * 1024 ? 1024 : 1;
+        int domainBucketCount = (int) (domainSize / domainBucketWidth);
+        int rangeBucketCount = (int) (rangeSize / rangeBucketWidth);
 
         // subset of domain vertices and range vertices which will have at least one edge of the given label
         RandomSubset<Integer> domainSubset = createRandomSubset(
-            new DirectSet(domainSet.size()),
+            new DirectSet(domainBucketCount),
             edgeStats.getDomainIncidence().getExistenceProbability());
         RandomSubset<Integer> rangeSubset = createRandomSubset(
-            new DirectSet(rangeSet.size()),
+            new DirectSet(rangeBucketCount),
             edgeStats.getRandeIncidence().getExistenceProbability());
 
         // domain and range distributions
         DegreeDistribution.Sample domainSample
-            = edgeStats.getDomainIncidence().getDegreeDistribution().createSample(domainSet.size(), random);
+            = edgeStats.getDomainIncidence().getDegreeDistribution().createSample(domainBucketCount, random);
         DegreeDistribution.Sample rangeSample
             = edgeStats.getRandeIncidence().getDegreeDistribution().createSample(rangeSubset.size(), random);
 
-        logger.info("generating edges: from " + domainLabel + " to " + rangeLabel + "...");
+        long edgeCount = 0;
         for (int i = 0; i < domainSubset.size; i++) {
-            int tailIndex = domainSubset.get(i);
             // TODO: account for degree == 0
             int outDegree = domainSample.getNextDegree();
             for (int j = 0; j < outDegree; j++) {
-                // TODO: account for missing indexes
-                int k = rangeSample.getNextIndex();
-                // continue only if we have not exhausted the range subset
-                // We can't necessarily re-use range entities, e.g. if the relationship is OneToMany
-                if (k < rangeSubset.size) {
-                    int headIndex = rangeSubset.get(k);
-                    createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
+                for (int t = 0; t < domainBucketWidth; t++) {
+                    long tailIndex = domainSubset.get(i) * domainBucketWidth + t;
+                    // TODO: account for missing indexes
+                    int k = rangeSample.getNextIndex();
+                    for (int h = 0; h < rangeBucketWidth; h++) {
+                        // continue only if we have not exhausted the range subset
+                        // We can't necessarily re-use range entities, e.g. if the relationship is OneToMany
+                        if (k < rangeSubset.size) {
+                            long headIndex = rangeSubset.get(k) * rangeBucketWidth + random.nextInt(rangeBucketWidth);
+                            createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
+                            edgeCount++;
+                        }
+                    }
                 }
             }
         }
+        logger.info("generated " + edgeCount + " edges: " + domainLabel + " " + edgeLabel + " " + rangeLabel);
     }
 
     private void createVertex(final String label, long id, final DB graph, final PropertyModel props) {
@@ -278,8 +290,8 @@ public class GraphGenerator {
     }
 
     private void createEdge(final String label,
-                            String tailLabel, final int tailIndex,
-                            String headLabel, final int headIndex,
+                            String tailLabel, final long tailIndex,
+                            String headLabel, final long headIndex,
                             final DB graph) {
         Object tailId = graph.genVertexId(tailLabel, tailIndex);
         Object headId = graph.genVertexId(headLabel, headIndex);

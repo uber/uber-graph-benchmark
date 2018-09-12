@@ -106,7 +106,11 @@ public abstract class DB {
      * @return
      */
     public Object genVertexId(String label, long id) {
-        return UUID.nameUUIDFromBytes((label + id).getBytes()).getLeastSignificantBits();
+        long key = UUID.nameUUIDFromBytes((label + id).getBytes()).getLeastSignificantBits();
+        if (key<0){
+            key = -key;
+        }
+        return key;
     }
 
 }

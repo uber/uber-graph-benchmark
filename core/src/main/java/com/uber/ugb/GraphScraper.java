@@ -20,7 +20,7 @@ public class GraphScraper {
     public GraphScraper() {
     }
 
-    public void scrape(DB db, int seed, int outVertexCount,
+    public void scrape(DB db, int seed, long outVertexCount,
                        QueriesSpec.Query query,
                        int operationCount, int concurrency) {
 
@@ -31,14 +31,12 @@ public class GraphScraper {
         ExecutorService executorService = Executors.newFixedThreadPool(concurrency + 1);
         executorService.execute(() -> {
             Random random = new Random(seed);
-            for (int i = 0; i < operationCount; i++) {
-                int index = random.nextInt(outVertexCount);
+            random.longs(operationCount, 0, outVertexCount).forEach(x -> {
                 try {
-                    todos.put(db.genVertexId(query.startVertexLabel, index));
+                    todos.put(db.genVertexId(query.startVertexLabel, x));
                 } catch (InterruptedException e) {
-                    continue;
                 }
-            }
+            });
         });
 
         for (int i = 0; i < concurrency; i++) {

@@ -130,13 +130,14 @@ public class Benchmark {
 
         } catch (Exception exp) {
             logger.info("Unexpected exception:" + exp.getMessage());
+            exp.printStackTrace();
         }
 
         logger.info("exiting...");
         System.exit(0);
     }
 
-    private static void benchmarkQueries(GraphGenerator gen, int seed, int totalVertices, DB db, String queriesPath,
+    private static void benchmarkQueries(GraphGenerator gen, int seed, long totalVertices, DB db, String queriesPath,
                                          int operationCount, int concurrency) throws Exception {
 
         Path path = Paths.get(queriesPath);
@@ -148,11 +149,11 @@ public class Benchmark {
 
         for (QueriesSpec.Query query : queriesSpec.queries) {
             logger.info("querying " + query.name + "...");
-            Map<String, GraphGenerator.IndexSet<Integer>> vertexPartitioner =
-                gen.getModel().getVertexPartitioner().getPartition(totalVertices);
-            GraphGenerator.IndexSet<Integer> startVertexSet = vertexPartitioner.get(query.startVertexLabel);
+            Map<String, Long> vertexPartitioner =
+                gen.getModel().getVertexPartitioner().getPartitionSizes(totalVertices);
+            Long startVertexSetSize = vertexPartitioner.get(query.startVertexLabel);
             GraphScraper graphScraper = new GraphScraper();
-            graphScraper.scrape(db, seed, startVertexSet.size(), query, operationCount, concurrency);
+            graphScraper.scrape(db, seed, startVertexSetSize, query, operationCount, concurrency);
         }
 
     }
