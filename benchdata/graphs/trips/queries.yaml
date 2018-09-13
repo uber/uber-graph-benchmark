@@ -13,7 +13,6 @@ queries:
   - edge:
       label: requested
       limit: 10
-      orderByTs: true
     vertex:
       select: tripAmount
   - edge:
@@ -22,6 +21,4 @@ queries:
     vertex:
       select: email
   - edge:
-      label: usedPaymentProfile
-  - edge:
-      label: registeredPi
+      label: usedDocument

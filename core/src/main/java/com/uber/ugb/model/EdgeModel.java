@@ -20,7 +20,7 @@ public class EdgeModel implements Serializable {
         return domainIncidence;
     }
 
-    public Incidence getRandeIncidence() {
+    public Incidence getRangeIncidence() {
         return randeIncidence;
     }
 }

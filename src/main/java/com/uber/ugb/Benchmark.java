@@ -67,10 +67,10 @@ public class Benchmark {
 
             Properties prop = collectProperties(workloadFile);
 
-            int operationCount = Integer.valueOf(prop.getProperty(READ_OPERATION_COUNT_PROPERTY, "1"));
+            long operationCount = Long.valueOf(prop.getProperty(READ_OPERATION_COUNT_PROPERTY, "1"));
             int writeConcurrency = Integer.valueOf(prop.getProperty(WRITE_THREAD_COUNT_PROPERTY, "16"));
             int readConcurrency = Integer.valueOf(prop.getProperty(READ_THREAD_COUNT_PROPERTY, "16"));
-            int totalVertices = Integer.valueOf(prop.getProperty(WRITE_VERTEX_COUNT_PROPERTY, "0"));
+            long totalVertices = Long.valueOf(prop.getProperty(WRITE_VERTEX_COUNT_PROPERTY, "0"));
             int seed = Integer.valueOf(prop.getProperty(WRITE_SEED_PROPERTY, "12345"));
 
             System.out.println(READ_OPERATION_COUNT_PROPERTY + "=" + operationCount);
@@ -97,11 +97,6 @@ public class Benchmark {
 
                     ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(db, writeConcurrency);
                     pdb.startup();
-
-                    gen.setTransactionListener(() -> {
-                        System.out.print(".");
-                        System.out.flush();
-                    });
 
                     gen.generateTo(pdb, totalVertices);
 
@@ -138,7 +133,7 @@ public class Benchmark {
     }
 
     private static void benchmarkQueries(GraphGenerator gen, int seed, long totalVertices, DB db, String queriesPath,
-                                         int operationCount, int concurrency) throws Exception {
+                                         long operationCount, int concurrency) throws Exception {
 
         Path path = Paths.get(queriesPath);
         InputStream yamlInput = new FileInputStream(new File(path.toString()));

@@ -36,7 +36,7 @@ public abstract class AbstractSubgraphDB extends DB {
     public Status subgraph(QueriesSpec.Query query, Subgraph subgraph) {
 
         Set<Object> visitedVertexIds = ConcurrentHashMap.newKeySet();
-        LinkedBlockingQueue<TODO> todos = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<Task> tasks = new LinkedBlockingQueue<>();
         int stepCount = query.steps.length;
         if (stepCount == 0) {
             return Status.OK;
@@ -46,15 +46,15 @@ public abstract class AbstractSubgraphDB extends DB {
         AtomicInteger waitGroup = new AtomicInteger();
 
         try {
-            todos.put(new TODO(subgraph.startVertexId, 0, null));
+            tasks.put(new Task(subgraph.startVertexId, 0, null));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         AtomicBoolean hasException = new AtomicBoolean();
 
-        while ((!todos.isEmpty() || waitGroup.get() > 0) && !hasException.get()) {
-            if (todos.isEmpty()) {
+        while ((!tasks.isEmpty() || waitGroup.get() > 0) && !hasException.get()) {
+            if (tasks.isEmpty()) {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
@@ -62,12 +62,12 @@ public abstract class AbstractSubgraphDB extends DB {
                 continue;
             }
 
-            TODO todo = todos.poll();
-            if (todo.currentEdge != null) {
+            Task task = tasks.poll();
+            if (task.currentEdge != null) {
                 waitGroup.incrementAndGet();
                 executorService.execute(() -> {
                     try {
-                        processVertexToDo(todo, query.steps[todo.stepId], todo.currentEdge);
+                        processVertexToDo(task, query.steps[task.stepId], task.currentEdge);
                     } catch (Exception e) {
                         e.printStackTrace();
                         hasException.set(true);
@@ -79,9 +79,9 @@ public abstract class AbstractSubgraphDB extends DB {
                 waitGroup.incrementAndGet();
                 executorService.execute(() -> {
                     try {
-                        boolean isLastStep = todo.stepId + 1 >= query.steps.length;
-                        QueriesSpec.Query.Step step = query.steps[todo.stepId];
-                        traverseOneStep(todo.id, step, visitedVertexIds, todos, subgraph, todo.stepId, isLastStep);
+                        boolean isLastStep = task.stepId + 1 >= query.steps.length;
+                        QueriesSpec.Query.Step step = query.steps[task.stepId];
+                        traverseOneStep(task.id, step, visitedVertexIds, tasks, subgraph, task.stepId, isLastStep);
                     } catch (Exception e) {
                         e.printStackTrace();
                         hasException.set(true);
@@ -95,7 +95,7 @@ public abstract class AbstractSubgraphDB extends DB {
         return Status.OK;
     }
 
-    private void processVertexToDo(TODO todo, QueriesSpec.Query.Step step, Subgraph.Edge subgraphEdge) {
+    private void processVertexToDo(Task task, QueriesSpec.Query.Step step, Subgraph.Edge subgraphEdge) {
 
         RelationType relationType = vocabulary.getRelationType(step.edge.label, SchemaManager.TypeCategory.Relation);
         String vertexLabel = step.edge.isBackward()
@@ -103,14 +103,14 @@ public abstract class AbstractSubgraphDB extends DB {
             : relationType.getTo().getLabel();
 
         this.getMetrics().readVertex.measure(() -> {
-            Properties vertexProperties = readVertex(vertexLabel, todo.id, step.vertex);
+            Properties vertexProperties = readVertex(vertexLabel, task.id, step.vertex);
             vertexProperties = extractProperties(vertexProperties, step.vertex.select, null);
             subgraphEdge.setVertexProperties(vertexProperties);
         });
     }
 
     public void traverseOneStep(Object id, QueriesSpec.Query.Step step, Set<Object> visitedVertexIds,
-                                LinkedBlockingQueue<TODO> todos, Subgraph subgraph,
+                                LinkedBlockingQueue<Task> tasks, Subgraph subgraph,
                                 int stepId, boolean isLastStep) throws Exception {
 
         this.getMetrics().readEdge.measure(() -> {
@@ -120,6 +120,7 @@ public abstract class AbstractSubgraphDB extends DB {
                 List<Subgraph.Edge> possibleEdges = readEdges(id, step.edge);
 
                 for (Subgraph.Edge edge : possibleEdges) {
+
                     if (!step.edge.matchEdgeFilter(edge.edgeProperties)) {
                         // this edge is filtered out
                         continue;
@@ -137,10 +138,10 @@ public abstract class AbstractSubgraphDB extends DB {
                     subgraph.addEdge(edge);
 
                     if (step.vertex != null && !Strings.isNullOrEmpty(step.vertex.select)) {
-                        todos.put(new AbstractSubgraphDB.TODO(edge.nextVertexId, stepId, edge));
+                        tasks.put(new Task(edge.nextVertexId, stepId, edge));
                     }
                     if (!isLastStep) {
-                        todos.put(new AbstractSubgraphDB.TODO(edge.nextVertexId, stepId + 1, null));
+                        tasks.put(new Task(edge.nextVertexId, stepId + 1, null));
                     }
                 }
             } catch (Exception e) {
@@ -151,12 +152,12 @@ public abstract class AbstractSubgraphDB extends DB {
 
     }
 
-    private static class TODO {
+    private static class Task {
         Object id;
         int stepId;
         Subgraph.Edge currentEdge;
 
-        TODO(Object id, int stepId, Subgraph.Edge currentEdge) {
+        Task(Object id, int stepId, Subgraph.Edge currentEdge) {
             this.id = id;
             this.stepId = stepId;
             this.currentEdge = currentEdge;

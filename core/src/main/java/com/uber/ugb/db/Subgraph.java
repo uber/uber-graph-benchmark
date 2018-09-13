@@ -1,6 +1,7 @@
 package com.uber.ugb.db;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +21,7 @@ public class Subgraph {
 
     public Subgraph(Object startVertexId) {
         this.startVertexId = startVertexId;
-        this.edges = new ArrayList<>();
+        this.edges = Collections.synchronizedList(new ArrayList<>());
     }
 
     /**

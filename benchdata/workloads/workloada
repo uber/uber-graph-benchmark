@@ -1,7 +1,9 @@
 graph=trips
 
-write.vertex.count=100000
+#write.vertex.count=2147483648
+#write.vertex.count=214748364
+write.vertex.count=1000000
 write.seed=12345
 
-read.thread.count=16
-read.operation.count=10000
+read.thread.count=64
+read.operation.count=100000

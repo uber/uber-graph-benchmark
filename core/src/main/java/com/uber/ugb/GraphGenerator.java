@@ -8,6 +8,7 @@ import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.model.SimpleProperty;
 import com.uber.ugb.model.distro.DegreeDistribution;
 import com.uber.ugb.schema.model.RelationType;
+import com.uber.ugb.util.ProgressReporter;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.io.File;
@@ -15,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -191,9 +193,12 @@ public class GraphGenerator {
             PropertyModel props = model.getVertexPropertyModels().get(label);
             long nVertices = e.getValue();
             logger.info("generating " + nVertices + " " + label + "...");
+            ProgressReporter progressReporter = new ProgressReporter("gen vertex " + label, nVertices, 102400L);
             for (long i = 0; i < nVertices; i++) {
                 createVertex(label, i, graph, props);
+                progressReporter.maybeReport(i);
             }
+            progressReporter.report(nVertices);
         }
     }
 
@@ -223,10 +228,12 @@ public class GraphGenerator {
     private void createEdges(final String edgeLabel, final EdgeModel edgeStats, final DB graph) {
 
         String domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
-        String rangeLabel = edgeStats.getRandeIncidence().getVertexLabel();
+        String rangeLabel = edgeStats.getRangeIncidence().getVertexLabel();
 
         long domainSize = vertexPartition.get(domainLabel);
         long rangeSize = vertexPartition.get(rangeLabel);
+        long domainExistCount = (long) (edgeStats.getDomainIncidence().getExistenceProbability() * domainSize);
+        long rangeExistCount = (long) (edgeStats.getRangeIncidence().getExistenceProbability() * rangeSize);
 
         int domainBucketWidth = domainSize > 1024 * 1024 ? 1024 : 1;
         int rangeBucketWidth = rangeSize > 1024 * 1024 ? 1024 : 1;
@@ -239,36 +246,50 @@ public class GraphGenerator {
             edgeStats.getDomainIncidence().getExistenceProbability());
         RandomSubset<Integer> rangeSubset = createRandomSubset(
             new DirectSet(rangeBucketCount),
-            edgeStats.getRandeIncidence().getExistenceProbability());
+            edgeStats.getRangeIncidence().getExistenceProbability());
 
         // domain and range distributions
         DegreeDistribution.Sample domainSample
-            = edgeStats.getDomainIncidence().getDegreeDistribution().createSample(domainBucketCount, random);
+            = edgeStats.getDomainIncidence().getDegreeDistribution().createSample(domainSubset.size(), random);
         DegreeDistribution.Sample rangeSample
-            = edgeStats.getRandeIncidence().getDegreeDistribution().createSample(rangeSubset.size(), random);
+            = edgeStats.getRangeIncidence().getDegreeDistribution().createSample(rangeSubset.size(), random);
+
+        WeightedBuckets domainWeightedBuckets = new WeightedBuckets(domainSample, domainSubset.size());
+        WeightedBuckets rangeWeightedBuckets = new WeightedBuckets(rangeSample, rangeSubset.size());
+
+        long totalEdge = (long) domainWeightedBuckets.getTotalWeight() * domainBucketWidth;
+
+        String prefix = String.format("gen %s(%d/%d):%s:%s(%d/%d)",
+            domainLabel, domainExistCount, domainSize,
+            edgeLabel,
+            rangeLabel, rangeExistCount, rangeSize
+        );
+
+        ProgressReporter progressReporter = new ProgressReporter(prefix, totalEdge, 102400L);
+
 
         long edgeCount = 0;
-        for (int i = 0; i < domainSubset.size; i++) {
-            // TODO: account for degree == 0
-            int outDegree = domainSample.getNextDegree();
-            for (int j = 0; j < outDegree; j++) {
-                for (int t = 0; t < domainBucketWidth; t++) {
-                    long tailIndex = domainSubset.get(i) * domainBucketWidth + t;
-                    // TODO: account for missing indexes
-                    int k = rangeSample.getNextIndex();
-                    for (int h = 0; h < rangeBucketWidth; h++) {
-                        // continue only if we have not exhausted the range subset
-                        // We can't necessarily re-use range entities, e.g. if the relationship is OneToMany
-                        if (k < rangeSubset.size) {
-                            long headIndex = rangeSubset.get(k) * rangeBucketWidth + random.nextInt(rangeBucketWidth);
-                            createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
-                            edgeCount++;
-                        }
-                    }
-                }
-            }
+
+        while (edgeCount < totalEdge) {
+
+            // pick tail
+            int domainBucket = domainWeightedBuckets.locate(random);
+            int tbd = random.nextInt(domainBucketWidth);
+            long tailIndex = (long) domainSubset.get(domainBucket) * domainBucketWidth + tbd;
+
+            // pick head
+            int rangeBucket = rangeWeightedBuckets.locate(random);
+            int hbd = random.nextInt(domainBucketWidth);
+            long headIndex = rangeSubset.get(rangeBucket) * rangeBucketWidth + hbd;
+
+
+            // System.out.println(String.format("domain sample index %d %d=%d*%d+%d", t, tailIndex, domainSubset.get(t), domainBucketWidth, d));
+            createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
+            edgeCount++;
+
+            progressReporter.maybeReport(edgeCount);
         }
-        logger.info("generated " + edgeCount + " edges: " + domainLabel + " " + edgeLabel + " " + rangeLabel);
+        progressReporter.report(totalEdge);
     }
 
     private void createVertex(final String label, long id, final DB graph, final PropertyModel props) {
@@ -296,6 +317,11 @@ public class GraphGenerator {
         Object tailId = graph.genVertexId(tailLabel, tailIndex);
         Object headId = graph.genVertexId(headLabel, headIndex);
 
+        //System.out.println(String.format("gen %s(%d:%d) %s %s(%d:%d)",
+        //    tailLabel, tailIndex, tailId,
+        //    label,
+        //    headLabel, headIndex, headId
+        //));
         graph.writeEdge(label, tailLabel, tailId, headLabel, headId);
 
         incrementBatchCounter(graph);
@@ -304,15 +330,6 @@ public class GraphGenerator {
     private <T> RandomSubset<T> createRandomSubset(final IndexSet<T> base, final double probability) {
         int size = (int) (probability * base.size());
         return new RandomSubset<>(base, size, random);
-    }
-
-    public String keyspaceForDataset(final long size) {
-        String simple = "" + size;
-        String abbrev = abbreviateNumber(size);
-        String sizeStr = (simple.length() <= abbrev.length()
-            ? simple
-            : abbrev.replaceAll("\\.", "_"));
-        return "gen" + sizeStr + "_" + VERSION + "_" + model.getHash() + "_" + randomSeed;
     }
 
     public interface IndexSet<T> {
@@ -420,6 +437,39 @@ public class GraphGenerator {
             throws FileNotFoundException {
             File file = new File(dir, property.getName() + ".csv");
             return new FileOutputStream(file);
+        }
+    }
+
+    private static class WeightedBuckets {
+        double[] accumulatedWeights;
+        double totalWeight;
+
+        public WeightedBuckets(DegreeDistribution.Sample sample, int bucketCount) {
+            double[] weights = new double[bucketCount];
+            accumulatedWeights = new double[bucketCount];
+            totalWeight = 0;
+            for (int i = 0; i < bucketCount; i++) {
+                weights[i] = sample.getNextDegree();
+                totalWeight += weights[i];
+            }
+            double currentWeight = 0;
+            for (int i = 0; i < bucketCount; i++) {
+                currentWeight += weights[i];
+                accumulatedWeights[i] = currentWeight / totalWeight;
+            }
+        }
+
+        public int locate(Random random) {
+            double r = random.nextDouble();
+            int x = Arrays.binarySearch(this.accumulatedWeights, r);
+            if (x < 0) {
+                x = (-x) - 1;
+            }
+            return x;
+        }
+
+        public double getTotalWeight() {
+            return totalWeight;
         }
     }
 }

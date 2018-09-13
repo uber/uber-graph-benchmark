@@ -82,17 +82,6 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         }
     }
 
-    @Test
-    public void defaultKeyspacesAreCorrect() throws Exception {
-        keyspaceMatches("gen42", 42, 1);
-        keyspaceMatches("gen393", 393, 2);
-        keyspaceMatches("gen1k", 1000, 3);
-        keyspaceMatches("gen10001", 10001, 4);
-        keyspaceMatches("gen11k", 11000, 5);
-        keyspaceMatches("gen1_1M", 1100000, 6);
-        keyspaceMatches("gen2M", 2000000, 7);
-    }
-
     /*
     @Test
     public void csvPropertiesAreWrittenToFiles() throws Exception {
@@ -152,14 +141,6 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         writeVerticesTo(graph, new File("/tmp/vertices.csv"));
         writeEdgesTo(graph, new File("/tmp/edges.csv"));
         // TODO: vertex properties
-    }
-
-    private void keyspaceMatches(final String expectedPrefix, final long size, final long seed)
-        throws IOException, InvalidSchemaException {
-        GraphGenerator gen = new UgraphGenerator();
-        gen.setRandomSeed(seed);
-        String expected = expectedPrefix + "_" + GraphGenerator.VERSION + "_" + gen.getModel().getHash() + "_" + seed;
-        assertEquals(expected, gen.keyspaceForDataset(size));
     }
 
     private long generateGraphAndCountEdges(final int totalVertices, final @Nullable Long randomSeed)

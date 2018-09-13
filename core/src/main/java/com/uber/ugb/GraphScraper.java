@@ -4,6 +4,7 @@ import com.uber.ugb.db.DB;
 import com.uber.ugb.db.QueryCapability;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.util.ProgressReporter;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import javax.script.ScriptException;
@@ -14,44 +15,51 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 public class GraphScraper {
+
+    private static Logger logger = Logger.getLogger(GraphScraper.class.getName());
 
     public GraphScraper() {
     }
 
     public void scrape(DB db, int seed, long outVertexCount,
                        QueriesSpec.Query query,
-                       int operationCount, int concurrency) {
+                       long operationCount, int concurrency) {
 
-        ArrayBlockingQueue todos = new ArrayBlockingQueue(concurrency * 16);
+        ArrayBlockingQueue<Task> tasks = new ArrayBlockingQueue(concurrency * 16);
         AtomicLong readCounter = new AtomicLong();
         AtomicBoolean hasException = new AtomicBoolean();
 
         ExecutorService executorService = Executors.newFixedThreadPool(concurrency + 1);
         executorService.execute(() -> {
             Random random = new Random(seed);
+            AtomicLong y = new AtomicLong();
             random.longs(operationCount, 0, outVertexCount).forEach(x -> {
                 try {
-                    todos.put(db.genVertexId(query.startVertexLabel, x));
+                    tasks.put(new Task(db.genVertexId(query.startVertexLabel, x), y.incrementAndGet()));
                 } catch (InterruptedException e) {
                 }
             });
         });
 
+        ProgressReporter progressReporter = new ProgressReporter("query", operationCount, 100L);
+
+        AtomicLong queryCount = new AtomicLong();
+
         for (int i = 0; i < concurrency; i++) {
             executorService.execute(() -> {
-                while (readCounter.get() < operationCount) {
-                    Object startVertexId = null;
+                while (readCounter.get() < operationCount && !hasException.get()) {
+                    Task task = null;
                     try {
-                        startVertexId = todos.poll(100, TimeUnit.MILLISECONDS);
+                        task = tasks.poll(100, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
                     }
-                    if (startVertexId == null) {
+                    if (task == null) {
                         continue;
                     }
-                    Subgraph subgraph = new Subgraph(startVertexId);
+                    Subgraph subgraph = new Subgraph(task.vid);
                     try {
                         db.getMetrics().subgraph.measure(() -> {
                             if (db instanceof QueryCapability.SupportGremlin) {
@@ -71,13 +79,20 @@ public class GraphScraper {
                             }
                         });
                         db.getMetrics().subgraphVertexCount.addAndGet(subgraph.getVertexCount());
-                        db.getMetrics().subgraphEdgeCount.addAndGet(subgraph.getEdgeCount());
+                        int edgeCount = subgraph.getEdgeCount();
+                        db.getMetrics().subgraphEdgeCount.addAndGet(edgeCount);
+                        db.getMetrics().subgraphWithoutEdgeCount.addAndGet(edgeCount <= 0 ? 1 : 0);
                         readCounter.addAndGet(1);
                     } catch (Exception e) {
                         e.printStackTrace();
                         hasException.set(true);
                         return;
                     }
+
+                    queryCount.incrementAndGet();
+
+                    progressReporter.maybeReport(queryCount.get());
+
                 }
             });
         }
@@ -90,6 +105,8 @@ public class GraphScraper {
             }
         }
 
+        progressReporter.report(operationCount);
+
         executorService.shutdownNow();
         try {
             while (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
@@ -100,4 +117,15 @@ public class GraphScraper {
         }
 
     }
+
+    class Task {
+        Object vid;
+        long seqId;
+
+        public Task(Object vid, long seqId) {
+            this.vid = vid;
+            this.seqId = seqId;
+        }
+    }
+
 }

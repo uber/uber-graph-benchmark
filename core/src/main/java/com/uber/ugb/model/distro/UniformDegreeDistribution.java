@@ -15,12 +15,12 @@ public class UniformDegreeDistribution implements DegreeDistribution {
 
         return new Sample() {
             @Override
-            public int getNextDegree() {
+            public int getNextIndex() {
                 return (int) distro.inverseCumulativeProbability(random.nextDouble());
             }
 
             @Override
-            public int getNextIndex() {
+            public int getNextDegree() {
                 return (int) distro.sample();
             }
         };
