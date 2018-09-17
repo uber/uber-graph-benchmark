@@ -9,6 +9,7 @@ import com.uber.ugb.model.SimpleProperty;
 import com.uber.ugb.model.distro.DegreeDistribution;
 import com.uber.ugb.schema.model.RelationType;
 import com.uber.ugb.util.ProgressReporter;
+import com.uber.ugb.util.RandomPermutation;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.io.File;

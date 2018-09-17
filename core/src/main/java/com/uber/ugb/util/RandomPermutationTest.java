@@ -1,5 +1,6 @@
-package com.uber.ugb;
+package com.uber.ugb.util;
 
+import com.uber.ugb.util.RandomPermutation;
 import org.junit.Ignore;
 import org.junit.Test;
 

@@ -1,4 +1,4 @@
-package com.uber.ugb;
+package com.uber.ugb.util;
 
 import com.google.common.base.Preconditions;
 
@@ -8,7 +8,7 @@ import java.util.Random;
  * A simple O(n) time, O(n) space random permutation generator which materializes the permutation and
  * inverse permutation as arrays
  */
-class RandomPermutation {
+public class RandomPermutation {
     private final Random random;
     private int[] permutation;
     private int[] inversePermutation;
@@ -17,13 +17,13 @@ class RandomPermutation {
         this(size, new Random());
     }
 
-    RandomPermutation(final int size, final Random random) {
+    public RandomPermutation(final int size, final Random random) {
         this.random = random;
         Preconditions.checkArgument(size > 0);
         generate(size);
     }
 
-    int[] getPermutation() {
+    public int[] getPermutation() {
         return permutation;
     }
 
