@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.uber.ugb.db.DB;
 import com.uber.ugb.db.NoopDB;
 import com.uber.ugb.db.ParallelWriteDBWrapper;
+import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.queries.QueriesSpec;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -80,14 +81,18 @@ public class Benchmark {
             System.out.println(WRITE_SEED_PROPERTY + "=" + seed);
 
             // start generator
-            GraphGenerator gen = new UgraphGenerator();
+            GraphModelBuilder graphModelBuilder = new GraphModelBuilder();
+            graphModelBuilder.addConceptDirectory(new File(graphDir, "concepts"));
+            graphModelBuilder.setStatistics(new File(graphDir, "statistics.yaml"));
+            GraphModel model = graphModelBuilder.build();
+            GraphGenerator gen = new GraphGenerator(model);
             gen.setRandomSeed(seed);
 
             // load the db object from db class name
             DB db = loadDbFromClassName(dbname);
             // set the properties
             db.setProperties(prop);
-            db.setVocabulary(gen.getModel().getSchemaVocabulary());
+            db.setVocabulary(model.getSchemaVocabulary());
             // init the db instance
             db.init();
 

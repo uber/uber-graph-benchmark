@@ -11,9 +11,9 @@ public class Partitioner implements Serializable {
     private static final long serialVersionUID = Vocabulary.serialVersionUID;
 
     // order-preserving for the sake of serialization
-    private Map<String, Integer> weightByLabel = new LinkedHashMap<>();
+    private Map<String, Float> weightByLabel = new LinkedHashMap<>();
 
-    public void put(final String label, final int weight) {
+    public void put(final String label, final float weight) {
         weightByLabel.put(label, weight);
     }
 
@@ -22,7 +22,7 @@ public class Partitioner implements Serializable {
         Map<String, Long> partition = new LinkedHashMap<>();
         long remaining = total;
         float totalWeight = (float) findTotalWeight();
-        for (Map.Entry<String, Integer> e : weightByLabel.entrySet()) {
+        for (Map.Entry<String, Float> e : weightByLabel.entrySet()) {
             String label = e.getKey();
             long weight = Math.min(remaining, (long) (total * (e.getValue() * 1.0f / totalWeight)));
             remaining -= weight;
@@ -35,13 +35,13 @@ public class Partitioner implements Serializable {
         return weightByLabel.keySet();
     }
 
-    public Map<String, Integer> getWeightByLabel() {
+    public Map<String, Float> getWeightByLabel() {
         return weightByLabel;
     }
 
-    private int findTotalWeight() {
-        int total = 0;
-        for (Integer weight : weightByLabel.values()) {
+    private float findTotalWeight() {
+        float total = 0;
+        for (Float weight : weightByLabel.values()) {
             total += weight;
         }
         return total;

@@ -1,7 +1,0 @@
-vertices:
-
-- type: documents.Document
-      
-edges:
-
-- type: documents.usedDocument

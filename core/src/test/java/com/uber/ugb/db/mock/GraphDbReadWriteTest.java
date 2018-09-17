@@ -1,21 +1,23 @@
 package com.uber.ugb.db.mock;
 
+import com.uber.ugb.GraphGenerator;
 import com.uber.ugb.db.DB;
 import com.uber.ugb.db.KeyValueDB;
 import com.uber.ugb.db.PrefixKeyValueDB;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
-import com.uber.ugb.schema.UgraphVocabulary;
 import com.uber.ugb.schema.Vocabulary;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Properties;
 
+import static com.uber.ugb.GraphGeneratorTest.newGraphGenerator;
 import static org.junit.Assert.assertEquals;
 
 public class GraphDbReadWriteTest {
 
-    public static void testDBReadWrite(DB db) {
+    public static void testDBReadWrite(DB db) throws IOException {
         initGraphForTest(db);
 
         QueriesSpec.Query query = new QueriesSpec.Query();
@@ -58,8 +60,9 @@ public class GraphDbReadWriteTest {
 
     }
 
-    public static void initGraphForTest(DB db) {
-        Vocabulary vocabulary = UgraphVocabulary.getInstance();
+    public static void initGraphForTest(DB db) throws IOException {
+        GraphGenerator graphGenerator = newGraphGenerator();
+        Vocabulary vocabulary = graphGenerator.getModel().getSchemaVocabulary();
         db.setVocabulary(vocabulary);
 
         db.writeVertex("User", 1L, "name", "name1");
@@ -83,12 +86,12 @@ public class GraphDbReadWriteTest {
     }
 
     @Test
-    public void testMockMemDocumentDB() {
+    public void testMockMemDocumentDB() throws IOException {
         testDBReadWrite(new MockMemAbstractSubgraphDB());
     }
 
     @Test
-    public void testKeyValueDB() {
+    public void testKeyValueDB() throws IOException {
         KeyValueDB kvdb = new KeyValueDB();
         kvdb.setKeyValueStore(new MockKeyValueStore());
 
@@ -96,7 +99,7 @@ public class GraphDbReadWriteTest {
     }
 
     @Test
-    public void testPrefixKeyValueDB() {
+    public void testPrefixKeyValueDB() throws IOException {
         PrefixKeyValueDB kvdb = new PrefixKeyValueDB();
         kvdb.setPrefixKeyValueStore(new MockPrefixKeyValueStore());
 

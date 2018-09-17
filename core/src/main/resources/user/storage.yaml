@@ -1,7 +1,0 @@
-cassandra: core
-keyspace: ugraph_user
-
-vertices:
-
-- type: users.User
-  cassandraTable: user

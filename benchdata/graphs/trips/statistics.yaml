@@ -1,0 +1,42 @@
+vertices:
+  - type: User
+    weight: 13
+  - type: Trip
+    weight: 8
+  - type: Document
+    weight: 13
+
+# TODO implement property model
+# Undefined property defaults to uniform random property model for the property type
+properties:
+  - type: users.driverStatus
+    values:
+      - value: "Active"
+        weight: 90
+      - value: "Rejected"
+        weight: 5
+      - value: "Waitlisted"
+        weight: 5
+
+edges:
+  - type: trips.droveFor
+    out:
+      existenceProbability: 0.0580
+      logMean: 2.6651985
+      logSD: 0.2999116
+    in:
+      existenceProbability: 0.9365
+  - type: documents.usedDocument
+    out:
+      existenceProbability: 0.2315
+    in:
+      existenceProbability: 1.0000
+      logMean: -636.5463
+      logSD: 17.5147
+  - type: trips.requested
+    out:
+      existenceProbability: 0.0304
+      logMean: 0.4645424
+      logSD: 0.6449740
+    in:
+      existenceProbability: 0.1085

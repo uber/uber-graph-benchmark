@@ -1,6 +1,7 @@
 package com.uber.ugb;
 
 import com.uber.ugb.db.GremlinDB;
+import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.schema.InvalidSchemaException;
 import com.uber.ugb.schema.SchemaUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -17,10 +18,26 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class GraphGeneratorTest extends GraphGenTestBase {
+
+    public static GraphGenerator newGraphGenerator() throws IOException {
+        ClassLoader loader = GraphGeneratorTest.class.getClassLoader();
+        GraphModelBuilder graphModelBuilder = new GraphModelBuilder();
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/core.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/devices.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/documents.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/payments.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/referrals.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/trips.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/users.yaml"));
+        graphModelBuilder.addConcept(loader.getResourceAsStream("trips/concepts/vehicles.yaml"));
+        graphModelBuilder.setStatisticsInputStream(loader.getResourceAsStream("trips/statistics.yaml"));
+        GraphModel model = graphModelBuilder.build();
+        GraphGenerator gen = new GraphGenerator(model);
+        return gen;
+    }
 
     @Test
     public void vertexLabelFrequenciesMatchInputPartition() throws Exception {
@@ -28,14 +45,15 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         Graph graph = SchemaUtils.createTinkerGraph();
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
-        GraphGenerator gen = new UgraphGenerator();
+        GraphGenerator gen = newGraphGenerator();
         gen.generateTo(gremlinDB, totalVertices);
 
-        assertEquals(totalVertices, count(graph.traversal().V()));
-        Map<String, Integer> weights = gen.getModel().getVertexPartitioner().getWeightByLabel();
-        int totalWeight = 0;
+        assertTrue(Math.abs(totalVertices - count(graph.traversal().V())) < 5);
+
+        Map<String, Float> weights = gen.getModel().getVertexPartitioner().getWeightByLabel();
+        float totalWeight = 0;
         Map<String, Integer> counts = new HashMap<>();
-        for (Map.Entry<String, Integer> e : weights.entrySet()) {
+        for (Map.Entry<String, Float> e : weights.entrySet()) {
             String label = e.getKey();
             totalWeight += e.getValue();
             counts.put(label, 0);
@@ -85,7 +103,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
     /*
     @Test
     public void csvPropertiesAreWrittenToFiles() throws Exception {
-        GraphGenerator gen = new UgraphGenerator();
+        GraphGenerator gen = newGraphGenerator();
         Set<RelationType> csvProps = new HashSet<>();
         //csvProps.add(gen.getModel().getSchemaVocabulary().getRelationTypes().get(
         //        new QualifiedName("core", "uuid")));
@@ -135,7 +153,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         Graph graph = SchemaUtils.createTinkerGraph();
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
-        GraphGenerator gen = new UgraphGenerator();
+        GraphGenerator gen = newGraphGenerator();
         gen.generateTo(gremlinDB, totalVertices);
 
         writeVerticesTo(graph, new File("/tmp/vertices.csv"));
@@ -148,7 +166,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         Graph graph = SchemaUtils.createTinkerGraph();
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
-        GraphGenerator gen = new UgraphGenerator();
+        GraphGenerator gen = newGraphGenerator();
         if (null != randomSeed) {
             gen.setRandomSeed(randomSeed);
         }
