@@ -1,13 +1,11 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
-
 /**
  * A lightweight object representing an entity type. These DTOs are used for schema construction and serialization.
  * See <code>EntityType</code> for the materialized form of this class.
  */
 public class EntityTypeDTO extends TypeDTO {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -5286344557980177193L;
 
     private Object[] values;
 

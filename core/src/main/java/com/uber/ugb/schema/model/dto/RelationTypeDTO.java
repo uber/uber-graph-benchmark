@@ -1,13 +1,11 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
-
 /**
  * A lightweight object representing a relation type. These DTOs are used for schema construction and serialization.
  * See <code>RelationType</code> for the materialized form of this class.
  */
 public class RelationTypeDTO extends InlineRelationTypeDTO {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -8897389954512862620L;
 
     private String from;
 

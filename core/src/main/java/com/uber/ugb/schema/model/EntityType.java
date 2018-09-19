@@ -18,7 +18,7 @@ import java.util.Set;
  * while more complex types can have both outgoing and incoming relations.
  */
 public class EntityType extends Type<EntityType> {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 7960427126481962401L;
 
     private Object[] values;
     private boolean isDataType;

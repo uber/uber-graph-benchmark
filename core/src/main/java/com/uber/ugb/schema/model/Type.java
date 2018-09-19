@@ -2,7 +2,6 @@ package com.uber.ugb.schema.model;
 
 import com.uber.ugb.schema.InvalidSchemaException;
 import com.uber.ugb.schema.QualifiedName;
-import com.uber.ugb.schema.Vocabulary;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -19,7 +18,7 @@ import java.util.function.Function;
  */
 
 public abstract class Type<E extends Type> extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -8161344924833291717L;
 
     protected String label;
     private boolean isAbstract;

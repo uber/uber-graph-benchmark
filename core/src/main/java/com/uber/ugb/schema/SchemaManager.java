@@ -34,7 +34,7 @@ public abstract class SchemaManager<D> implements Serializable {
 
     protected static Logger logger = LoggerFactory.getLogger(SchemaManager.class);
 
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 2830190107857616735L;
 
     private static final Map<String, Class> valueClassesByName;
 

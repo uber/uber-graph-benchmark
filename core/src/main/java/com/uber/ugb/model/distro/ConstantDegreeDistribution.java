@@ -1,12 +1,11 @@
 package com.uber.ugb.model.distro;
 
 import com.google.common.base.Preconditions;
-import com.uber.ugb.schema.Vocabulary;
 
 import java.util.Random;
 
 public class ConstantDegreeDistribution implements DegreeDistribution {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 5619558013797593115L;
 
     private final int degree;
 

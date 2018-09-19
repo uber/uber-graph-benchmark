@@ -1,12 +1,11 @@
 package com.uber.ugb.model.distro;
 
-import com.uber.ugb.schema.Vocabulary;
 import org.apache.commons.math3.distribution.LogNormalDistribution;
 
 import java.util.Random;
 
 public class LogNormalDegreeDistribution implements DegreeDistribution {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 3628732958875020385L;
 
     private final double meanLog;
     private final double sdLog;

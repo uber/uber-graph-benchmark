@@ -1,11 +1,9 @@
 package com.uber.ugb.model;
 
-import com.uber.ugb.schema.Vocabulary;
-
 import java.io.Serializable;
 
 public class EdgeModel implements Serializable {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 5511473326817973109L;
 
     private final Incidence domainIncidence;
     private final Incidence randeIncidence;

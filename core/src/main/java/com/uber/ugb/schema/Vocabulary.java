@@ -37,7 +37,7 @@ public class Vocabulary implements Serializable {
     /**
      * Version ID for the schema YAML format, and by extension, other uGraph serial formats
      */
-    public static final long serialVersionUID = 0;
+    public static final long serialVersionUID = -6661393271208377523L;
 
     /**
      * An enumeration of basic data types

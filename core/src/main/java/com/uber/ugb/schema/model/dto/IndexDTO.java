@@ -1,6 +1,5 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.SchemaElement;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -10,7 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
  * See <code>Index</code> for the materialized form of this class.
  */
 public class IndexDTO extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -6444431171002232344L;
 
     private String key;
     private Direction direction = Direction.OUT;

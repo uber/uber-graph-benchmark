@@ -1,14 +1,12 @@
 package com.uber.ugb.model;
 
-import com.uber.ugb.schema.Vocabulary;
-
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class Partitioner implements Serializable {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -9209501217167191765L;
 
     // order-preserving for the sake of serialization
     private Map<String, Float> weightByLabel = new LinkedHashMap<>();

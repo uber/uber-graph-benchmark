@@ -1,6 +1,5 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.SchemaElement;
 
 /**
@@ -8,7 +7,7 @@ import com.uber.ugb.schema.model.SchemaElement;
  * See <code>Schema</code> for the materialized form of this class.
  */
 public class SchemaDTO extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -4196724127419211409L;
 
     private String name;
     private String[] includes = new String[]{};

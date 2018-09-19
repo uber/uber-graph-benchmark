@@ -1,7 +1,5 @@
 package com.uber.ugb.schema.model;
 
-import com.uber.ugb.schema.Vocabulary;
-
 import java.io.Serializable;
 
 /**
@@ -9,7 +7,7 @@ import java.io.Serializable;
  * Schema elements may have natural-language descriptions and/or comments.
  */
 public abstract class SchemaElement implements Serializable {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -7126337696682103131L;
 
     private String description;
     private String comment;

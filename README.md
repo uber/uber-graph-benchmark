@@ -22,6 +22,9 @@ Getting Started
   # this generate vertices and edges and write to noop, used for measuring data gen performance
   ./gradlew execute -PmainArgs="-db com.uber.ugb.db.NoopDB -g benchdata/graphs/trips -b benchdata/workloads/workloada -w"
 
+  # this generate vertices and edges and write as csv to System.out or a file
+  ./gradlew execute -PmainArgs="-db com.uber.ugb.db.CsvOutputDB -g benchdata/graphs/trips -b benchdata/workloads/workloada -w"
+
   ```
 
 Customization

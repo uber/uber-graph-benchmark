@@ -31,7 +31,7 @@ public class StatisticsSpec {
         @JsonProperty("value")
         public String value;
         @JsonProperty("weight")
-        public float weight;
+        public int weight;
     }
 
     public static class EdgeDistribution {

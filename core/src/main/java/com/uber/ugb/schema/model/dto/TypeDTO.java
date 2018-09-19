@@ -1,6 +1,5 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.SchemaElement;
 
 /**
@@ -8,7 +7,7 @@ import com.uber.ugb.schema.model.SchemaElement;
  * See <code>Type</code> for the materialized form of this abstract class.
  */
 public abstract class TypeDTO extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -3996593753845183263L;
 
     private String label;
     private boolean isAbstract;

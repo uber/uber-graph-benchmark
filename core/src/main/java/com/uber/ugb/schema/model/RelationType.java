@@ -1,7 +1,6 @@
 package com.uber.ugb.schema.model;
 
 import com.uber.ugb.schema.InvalidSchemaException;
-import com.uber.ugb.schema.Vocabulary;
 
 /**
  * An abstract relationship between entities. A relation has a domain and a range, as well as a number of
@@ -9,7 +8,7 @@ import com.uber.ugb.schema.Vocabulary;
  * As with entity types, link types may extend other types.
  */
 public class RelationType extends Type<RelationType> {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 7599273339417237664L;
 
     private Type from;
     private Type to;

@@ -1,18 +1,17 @@
 package com.uber.ugb.model;
 
-import com.uber.ugb.schema.Vocabulary;
+import com.uber.ugb.model.generator.Generator;
 import com.uber.ugb.schema.model.RelationType;
 
 import java.io.Serializable;
-import java.util.Random;
 
 public class SimpleProperty<T> implements Serializable {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -209172946806510138L;
 
     private final RelationType relationType;
-    private final SerializableFunction<Random, T> valueGenerator;
+    private final Generator valueGenerator;
 
-    public SimpleProperty(final RelationType relationType, SerializableFunction<Random, T> valueGenerator) {
+    public SimpleProperty(final RelationType relationType, Generator valueGenerator) {
         this.relationType = relationType;
         this.valueGenerator = valueGenerator;
     }
@@ -25,7 +24,7 @@ public class SimpleProperty<T> implements Serializable {
         return relationType.getLabel();
     }
 
-    public SerializableFunction<Random, T> getValueGenerator() {
+    public Generator getValueGenerator() {
         return valueGenerator;
     }
 }

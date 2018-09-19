@@ -1,6 +1,5 @@
 package com.uber.ugb.schema.model.dto;
 
-import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.Cardinality;
 
 /**
@@ -10,7 +9,7 @@ import com.uber.ugb.schema.model.Cardinality;
  * See <code>RelationType</code> for the materialized form of this class.
  */
 public class InlineRelationTypeDTO extends TypeDTO {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 663532412776638958L;
 
     private String to;
     private Cardinality cardinality;

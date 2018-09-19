@@ -24,7 +24,7 @@ public class ProgressReporter {
     }
 
     public void maybeReport(long count) {
-        if (verbose && count % countInterval == 0) {
+        if (verbose) {
             this.report(count);
         }
     }

@@ -1,6 +1,5 @@
 package com.uber.ugb.schema.model;
 
-import com.uber.ugb.schema.Vocabulary;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
@@ -10,7 +9,7 @@ import java.util.Objects;
  * An index hint. Currently used only with the JanusGraph back end.
  */
 public class Index extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -1131841444194436074L;
 
     private final RelationType relationType;
     private RelationType orderBy;

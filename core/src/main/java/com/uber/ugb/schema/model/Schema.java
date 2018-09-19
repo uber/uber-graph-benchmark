@@ -1,7 +1,6 @@
 package com.uber.ugb.schema.model;
 
 import com.google.common.base.Objects;
-import com.uber.ugb.schema.Vocabulary;
 import jline.internal.Preconditions;
 
 import java.util.List;
@@ -13,7 +12,7 @@ import java.util.Map;
  * It also includes any number of "indexes" on relations, as a hint to the storage layer.
  */
 public class Schema extends SchemaElement {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = 8935102833914197707L;
 
     protected String name;
     private List<Schema> includes;

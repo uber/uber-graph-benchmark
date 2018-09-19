@@ -7,21 +7,13 @@ import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.model.SimpleProperty;
 import com.uber.ugb.model.distro.DegreeDistribution;
-import com.uber.ugb.schema.model.RelationType;
 import com.uber.ugb.util.ProgressReporter;
 import com.uber.ugb.util.RandomPermutation;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -47,12 +39,7 @@ public class GraphGenerator {
     private int batchCounter = 0;
     private Runnable transactionListener;
 
-    private Set<RelationType> csvProps;
-    private File csvDir;
-    private CsvOutputs csvOutputs;
-
     // used in random permutations and degree distributions
-    private long randomSeed;
     private Random random;
 
     /**
@@ -65,38 +52,12 @@ public class GraphGenerator {
         setRandomSeed(new Random().nextLong());
     }
 
-    private static String abbreviateNumber(final long number) {
-        double[] powers = {1e3, 1e6, 1e9, 1e12};
-        String[] suffixes = {"k", "M", "G", "T"};
-        for (int i = powers.length - 1; i >= 0; i--) {
-            if (number >= powers[i]) {
-                double decimal = number / powers[i];
-                return Double.compare(decimal, Math.floor(decimal)) == 0
-                    ? (int) decimal + suffixes[i]
-                    : decimal + suffixes[i];
-            }
-        }
-        return "" + number;
-    }
-
-    void close() throws IOException {
-        csvOutputs.shutDown();
-    }
-
     public GraphModel getModel() {
         return model;
     }
 
     public Map<String, Long> getVertexPartition() {
         return vertexPartition;
-    }
-
-    public void setCsvProps(Set<RelationType> csvProps) {
-        this.csvProps = csvProps;
-    }
-
-    public void setCsvDir(File csvDir) {
-        this.csvDir = csvDir;
     }
 
     /**
@@ -120,7 +81,6 @@ public class GraphGenerator {
      * @param randomSeed the seed value
      */
     public void setRandomSeed(final long randomSeed) {
-        this.randomSeed = randomSeed;
         random = new Random(randomSeed);
     }
 
@@ -143,9 +103,7 @@ public class GraphGenerator {
     public synchronized void generateTo(final DB graph, final long totalVertices) throws IOException {
         Preconditions.checkNotNull(graph);
         Preconditions.checkArgument(totalVertices > 0);
-        // verifyGraphIsEmpty(graph); // this does not work since Ugsf does not support fetching all vertices.
 
-        createCsvOutputs();
         graph.setVocabulary(getModel().getSchemaVocabulary());
 
         vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
@@ -156,12 +114,6 @@ public class GraphGenerator {
             commit(graph);
         });
         logger.info("generated graph of " + totalVertices + " vertices in " + time + "ms");
-    }
-
-    private void createCsvOutputs() throws IOException {
-        if (null != csvDir && null != csvProps && csvProps.size() > 0) {
-            csvOutputs = new CsvOutputs(csvProps, csvDir);
-        }
     }
 
     private <E extends Exception> long timeTask(final RunnableWithException<E> task) throws E {
@@ -200,23 +152,6 @@ public class GraphGenerator {
                 progressReporter.maybeReport(i);
             }
             progressReporter.report(nVertices);
-        }
-    }
-
-    private void addProperties(final Vertex vertex, final PropertyModel props) throws IOException {
-        if (null != props) {
-            for (SimpleProperty prop : props.getProperties()) {
-                addProperty(vertex, prop);
-            }
-        }
-    }
-
-    private void addProperty(final Vertex vertex, final SimpleProperty prop) throws IOException {
-        Object value = prop.getValueGenerator().apply(random);
-        vertex.property(prop.getKey(), value);
-
-        if (null != csvOutputs) {
-            csvOutputs.handleProperty(vertex, prop.getRelationType(), value);
         }
     }
 
@@ -302,7 +237,7 @@ public class GraphGenerator {
             int i = 0;
             for (SimpleProperty prop : props.getProperties()) {
                 params[i] = prop.getKey();
-                Object value = prop.getValueGenerator().apply(random);
+                Object value = prop.getValueGenerator().generate(label, id, prop.getKey());
                 params[i + 1] = value;
                 i += 2;
             }
@@ -403,41 +338,6 @@ public class GraphGenerator {
         public Integer get(int index) {
             Preconditions.checkArgument(index < size);
             return index;
-        }
-    }
-
-    private static class CsvOutputs {
-
-        private Map<RelationType, OutputStream> streamsByProperty;
-
-        CsvOutputs(final Set<RelationType> props, final File dir) throws FileNotFoundException {
-            streamsByProperty = new HashMap<>();
-            for (RelationType prop : props) {
-                streamsByProperty.put(prop, streamForProperty(dir, prop));
-            }
-        }
-
-        void shutDown() throws IOException {
-            for (OutputStream stream : streamsByProperty.values()) {
-                stream.close();
-            }
-        }
-
-        void handleProperty(final Vertex vertex, final RelationType prop, final Object value) throws IOException {
-            OutputStream out = streamsByProperty.get(prop);
-
-            out.write(vertex.id().toString().getBytes());
-            out.write(',');
-            out.write(vertex.label().getBytes());
-            out.write(',');
-            out.write(value.toString().getBytes());
-            out.write('\n');
-        }
-
-        private FileOutputStream streamForProperty(final File dir, final RelationType property)
-            throws FileNotFoundException {
-            File file = new File(dir, property.getName() + ".csv");
-            return new FileOutputStream(file);
         }
     }
 

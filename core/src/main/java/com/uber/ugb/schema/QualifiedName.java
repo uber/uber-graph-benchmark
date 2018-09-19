@@ -11,7 +11,7 @@ import java.util.Objects;
  * uncapitalized camel case.
  */
 public class QualifiedName implements Serializable {
-    private static final long serialVersionUID = Vocabulary.serialVersionUID;
+    private static final long serialVersionUID = -1286218072601665367L;
 
     private final String prefix;
     private final String localName;
