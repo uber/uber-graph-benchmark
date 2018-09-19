@@ -8,8 +8,9 @@ public abstract class Generator<V> {
 
     protected abstract V genValue();
 
-    public Object generate(String label, long id, String key) {
-        long seed = (id << 5) - id;
+    public Object generate(long randomSeed, String label, long id, String key) {
+        long seed = randomSeed;
+        seed = ((seed << 5) - seed) + id;
         seed = ((seed << 5) - seed) + label.hashCode();
         seed = ((seed << 5) - seed) + ".".hashCode();
         seed = ((seed << 5) - seed) + key.hashCode();

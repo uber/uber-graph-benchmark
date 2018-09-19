@@ -40,6 +40,7 @@ public class GraphGenerator {
     private Runnable transactionListener;
 
     // used in random permutations and degree distributions
+    protected long randomSeed;
     private Random random;
 
     /**
@@ -81,6 +82,7 @@ public class GraphGenerator {
      * @param randomSeed the seed value
      */
     public void setRandomSeed(final long randomSeed) {
+        this.randomSeed = randomSeed;
         random = new Random(randomSeed);
     }
 
@@ -237,7 +239,7 @@ public class GraphGenerator {
             int i = 0;
             for (SimpleProperty prop : props.getProperties()) {
                 params[i] = prop.getKey();
-                Object value = prop.getValueGenerator().generate(label, id, prop.getKey());
+                Object value = prop.getValueGenerator().generate(this.randomSeed, label, id, prop.getKey());
                 params[i + 1] = value;
                 i += 2;
             }

@@ -20,9 +20,9 @@ public class WeightedValuesGeneratorTest {
             }
         );
 
-        String x = (String) gen.generate("User", 1, "status");
-        String y = (String) gen.generate("User", 1, "status");
-        String z = (String) gen.generate("User", 1, "driverStatus");
+        String x = (String) gen.generate(1, "User", 1, "status");
+        String y = (String) gen.generate(1, "User", 1, "status");
+        String z = (String) gen.generate(1, "User", 1, "driverStatus");
 
         assertEquals(x, y);
         assertNotEquals(x, z);
@@ -31,7 +31,7 @@ public class WeightedValuesGeneratorTest {
 
         Map<String, Integer> distribution = new HashMap<>();
         for (long k = 1; k < total; k++) {
-            String result = (String) gen.generate("User", k, "status");
+            String result = (String) gen.generate(1, "User", k, "status");
             int count = distribution.getOrDefault(result, 1);
             count++;
             distribution.put(result, count);
