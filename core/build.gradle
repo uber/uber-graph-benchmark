@@ -1,13 +1,18 @@
 plugins {
+    id 'net.researchgate.release' version '2.7.0' apply false
+    id 'java-library'
+    id 'maven-publish'
 }
 
+apply plugin: 'net.researchgate.release'
+apply plugin: 'java'
+
 group 'com.uber.ugb'
-version '1.0-SNAPSHOT'
 
 ext {
     tinkerPopGroup = 'org.apache.tinkerpop'
     gremlinConsoleName = 'gremlin-console'
-    tinkerPopVersion = '3.2.3'
+    tinkerPopVersion = '3.3.3'
 }
 
 dependencies {
@@ -20,8 +25,8 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.2'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.9.2'
-    compile (group: tinkerPopGroup, name: 'gremlin-driver', version: tinkerPopVersion)
-    compile (group: tinkerPopGroup, name: 'tinkergraph-gremlin', version: tinkerPopVersion)
+    compile group: tinkerPopGroup, name: 'gremlin-driver', version: tinkerPopVersion
+    compile group: tinkerPopGroup, name: 'tinkergraph-gremlin', version: tinkerPopVersion
     compile group: 'org.apache.tinkerpop', name: 'gremlin-groovy', version: tinkerPopVersion
     compile group: 'de.ruedigermoeller', name: 'fst', version: '2.56'
     compile group: 'junit', name: 'junit', version: '4.8.1'
@@ -30,4 +35,24 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
 
+// the following are uber specific
+repositories {
+    mavenCentral()
+    maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-release-local/' }
+}
+
+
+release {
+    versionPropertyFile = "$rootDir/gradle.properties"
+    tagTemplate = '$name-$version'
+}
+
+afterReleaseBuild.dependsOn uploadArchives

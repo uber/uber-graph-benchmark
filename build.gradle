@@ -4,7 +4,8 @@ plugins {
 }
 
 group 'com.uber.ugb'
-version '1.0-SNAPSHOT'
+mainClassName = 'com.uber.ugb.Benchmark'
+
 
 sourceCompatibility = 1.8
 
@@ -24,7 +25,9 @@ dependencies {
 
 subprojects {
     apply plugin: 'java'
+
     sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 
     repositories {
         mavenCentral()
