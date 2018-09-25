@@ -1,11 +1,14 @@
 plugins {
-    id 'net.researchgate.release' version '2.7.0' apply false
+    id 'net.researchgate.release' version '2.4.0'
     id 'java-library'
+    id 'maven'
     id 'maven-publish'
 }
 
 apply plugin: 'net.researchgate.release'
 apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 group 'com.uber.ugb'
 
@@ -45,14 +48,49 @@ publishing {
 
 // the following are uber specific
 repositories {
-    mavenCentral()
     maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-release-local/' }
+    maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-snapshot-local/' }
+    mavenCentral()
 }
-
 
 release {
     versionPropertyFile = "$rootDir/gradle.properties"
     tagTemplate = '$name-$version'
+}
+
+// ----------------------
+// Build & Release
+// ----------------------
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            uniqueVersion = false
+            def artifactoryUserName = System.getenv('ARTIFACTORY_USERNAME')
+            def artifactoryPassword = System.getenv('ARTIFACTORY_PASSWORD')
+            if (artifactoryUserName && artifactoryPassword) {
+                def remoteRepositoryBucket = project.version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+                repository(url: "http://artifactory.uber.internal:4587/artifactory/${remoteRepositoryBucket}/") {
+                    authentication(userName: artifactoryUserName, password: artifactoryPassword)
+                }
+            }
+        }
+    }
 }
 
 afterReleaseBuild.dependsOn uploadArchives
