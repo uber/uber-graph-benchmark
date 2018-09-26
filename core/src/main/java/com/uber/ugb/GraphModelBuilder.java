@@ -31,7 +31,7 @@ public class GraphModelBuilder {
     List<InputStream> conceptInputStreams;
     InputStream statisticsInputStream;
 
-    GraphModelBuilder() {
+    public GraphModelBuilder() {
         this.conceptInputStreams = new ArrayList<>();
     }
 

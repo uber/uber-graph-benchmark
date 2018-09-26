@@ -48,7 +48,7 @@ public class GraphGenerator {
      *
      * @param model the statistical model which generated graphs are to follow
      */
-    GraphGenerator(final GraphModel model) {
+    public GraphGenerator(final GraphModel model) {
         this.model = model;
         setRandomSeed(new Random().nextLong());
     }
