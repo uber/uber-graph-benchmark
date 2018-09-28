@@ -10,7 +10,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -75,7 +74,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         int totalVertices = 10000;
         long prevCount = 0L;
         for (int i = 0; i < 10; i++) {
-            long count = generateGraphAndCountEdges(totalVertices, null);
+            long count = generateGraphAndCountEdges(totalVertices, 0);
             if (i > 0 && count != prevCount) {
                 return;
             }
@@ -161,13 +160,13 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         // TODO: vertex properties
     }
 
-    private long generateGraphAndCountEdges(final int totalVertices, final @Nullable Long randomSeed)
+    private long generateGraphAndCountEdges(final int totalVertices, final long randomSeed)
         throws IOException, InvalidSchemaException {
         Graph graph = SchemaUtils.createTinkerGraph();
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
         GraphGenerator gen = newGraphGenerator();
-        if (null != randomSeed) {
+        if (0 != randomSeed) {
             gen.setRandomSeed(randomSeed);
         }
         gen.generateTo(gremlinDB, totalVertices);

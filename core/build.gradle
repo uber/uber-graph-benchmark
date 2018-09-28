@@ -23,7 +23,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.3'
     compile group: 'org.apache.commons', name: 'commons-math3', version: '3.3'
     compile 'commons-io:commons-io:2.4'
-    compile 'com.google.guava:guava:26.0-jre'
+    compile 'com.google.guava:guava:19.0'
     compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.2'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
@@ -67,14 +67,8 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier 'javadoc'
-    from javadoc.destinationDir
-}
-
 artifacts {
     archives sourcesJar
-    archives javadocJar
 }
 
 uploadArchives {

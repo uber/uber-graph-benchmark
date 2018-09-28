@@ -1,7 +1,10 @@
 package com.uber.ugb.db;
 
+import com.uber.ugb.measurement.Metrics;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.Vocabulary;
 
+import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,6 +33,55 @@ public class ParallelWriteDBWrapper extends DB {
         this.runnableCounter = new AtomicLong();
         this.isClosing = new AtomicBoolean();
         this.executorService = Executors.newFixedThreadPool(concurrency);
+    }
+
+    @Override
+    public Vocabulary getVocabulary() {
+        return this.db.getVocabulary();
+    }
+
+    @Override
+    public void setVocabulary(Vocabulary vocabulary) {
+        this.db.setVocabulary(vocabulary);
+    }
+
+    @Override
+    public Metrics getMetrics() {
+        return this.db.getMetrics();
+    }
+
+    @Override
+    public void setMetrics(Metrics metrics) {
+        this.db.setMetrics(metrics);
+    }
+
+    @Override
+    public void init() throws DBException {
+        this.db.init();
+    }
+
+    @Override
+    public void cleanup() throws DBException {
+        this.db.cleanup();
+    }
+
+    @Override
+    public Status commitBatch() {
+        return this.db.commitBatch();
+    }
+
+    @Override
+    public Properties getProperties() {
+        return this.db.getProperties();
+    }
+
+    @Override
+    public void setProperties(Properties p) {
+        this.db.setProperties(p);
+    }
+
+    public Object genVertexId(String label, long id) {
+        return this.db.genVertexId(label, id);
     }
 
     public void startup() {
