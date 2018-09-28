@@ -62,26 +62,26 @@ public class GraphScraper {
                     Subgraph subgraph = new Subgraph(task.vid);
                     try {
                         db.getMetrics().subgraph.measure(() -> {
+                            int vertexCount = 0, edgeCount = 0;
                             if (db instanceof QueryCapability.SupportGremlin) {
                                 try {
                                     TinkerGraph g2 = (TinkerGraph) ((QueryCapability.SupportGremlin) db).queryByGremlin(
                                         query.gremlinQuery, "x", subgraph.startVertexId);
-                                    db.getMetrics().subgraphVertexCount.addAndGet(
-                                        g2.traversal().V().count().next().intValue());
-                                    db.getMetrics().subgraphEdgeCount.addAndGet(
-                                        g2.traversal().E().count().next().intValue());
+                                    vertexCount = g2.traversal().V().count().next().intValue();
+                                    edgeCount = g2.traversal().E().count().next().intValue();
                                 } catch (ScriptException e) {
                                     e.printStackTrace();
                                     throw new RuntimeException(e);
                                 }
                             } else {
                                 db.subgraph(query, subgraph);
+                                vertexCount = subgraph.getVertexCount();
+                                edgeCount = subgraph.getEdgeCount();
                             }
+                            db.getMetrics().subgraphVertexCount.addAndGet(vertexCount);
+                            db.getMetrics().subgraphEdgeCount.addAndGet(edgeCount);
+                            db.getMetrics().subgraphWithEdgesCount.addAndGet(edgeCount > 0 ? 1 : 0);
                         });
-                        db.getMetrics().subgraphVertexCount.addAndGet(subgraph.getVertexCount());
-                        int edgeCount = subgraph.getEdgeCount();
-                        db.getMetrics().subgraphEdgeCount.addAndGet(edgeCount);
-                        db.getMetrics().subgraphWithoutEdgeCount.addAndGet(edgeCount <= 0 ? 1 : 0);
                         readCounter.addAndGet(1);
                     } catch (Exception e) {
                         e.printStackTrace();

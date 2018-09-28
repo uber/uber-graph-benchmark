@@ -21,7 +21,7 @@ public class Metrics {
     public Measurement subgraph;
     public AtomicLong subgraphVertexCount;
     public AtomicLong subgraphEdgeCount;
-    public AtomicLong subgraphWithoutEdgeCount;
+    public AtomicLong subgraphWithEdgesCount;
 
     public Metrics() {
         this.writeVertex = new LatencyHistogram("write.vertex");
@@ -32,7 +32,7 @@ public class Metrics {
         this.subgraph = new LatencyHistogram("subgraph");
         this.subgraphVertexCount = new AtomicLong();
         this.subgraphEdgeCount = new AtomicLong();
-        this.subgraphWithoutEdgeCount = new AtomicLong();
+        this.subgraphWithEdgesCount = new AtomicLong();
     }
 
     public void printOut(OutputStream out) throws IOException {
@@ -48,7 +48,7 @@ public class Metrics {
         JsonObject json = jsonOutput.getJson();
         json.add("subgraph.vertex.count", new JsonPrimitive(subgraphVertexCount.get()));
         json.add("subgraph.edge.count", new JsonPrimitive(subgraphEdgeCount.get()));
-        json.add("empty.subgraph.count", new JsonPrimitive(subgraphWithoutEdgeCount.get()));
+        json.add("non.empty.subgraph.count", new JsonPrimitive(subgraphWithEdgesCount.get()));
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         Writer writer = new BufferedWriter(new OutputStreamWriter(out));

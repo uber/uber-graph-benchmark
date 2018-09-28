@@ -8,8 +8,8 @@ import com.uber.ugb.model.Incidence;
 import com.uber.ugb.model.Partitioner;
 import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.schema.InvalidSchemaException;
-import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.SchemaBuilder;
+import com.uber.ugb.schema.SchemaManager;
 import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.EntityType;
 import com.uber.ugb.schema.model.RelationType;
@@ -97,7 +97,8 @@ public class GraphModelBuilder {
     private LinkedHashMap<String, EdgeModel> buildEdgeModel(Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
         LinkedHashMap<String, EdgeModel> edgeModel = new LinkedHashMap<>();
         for (StatisticsSpec.EdgeDistribution edgeDistribution : statisticsSpec.edges) {
-            RelationType relationType = vocabulary.getRelationType(new QualifiedName(edgeDistribution.type));
+            RelationType relationType = vocabulary.getRelationType(edgeDistribution.type,
+                SchemaManager.TypeCategory.Relation);
             edgeModel.put(edgeDistribution.type,
                 new EdgeModel(
                     new Incidence(
@@ -118,7 +119,7 @@ public class GraphModelBuilder {
         Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
 
         Map<String, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
-        for(StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
+        for (StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
             customPropertyModels.put(propertyValues.type, propertyValues.propertyValueWeights);
         }
 
@@ -136,13 +137,14 @@ public class GraphModelBuilder {
         Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
 
         Map<String, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
-        for(StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
+        for (StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
             customPropertyModels.put(propertyValues.type, propertyValues.propertyValueWeights);
         }
 
         LinkedHashMap<String, PropertyModel> edgePropertyStats = new LinkedHashMap<>();
         for (StatisticsSpec.EdgeDistribution edgeDistribution : statisticsSpec.edges) {
-            RelationType entityType = vocabulary.getRelationType(new QualifiedName(edgeDistribution.type));
+            RelationType entityType = vocabulary.getRelationType(edgeDistribution.type,
+                SchemaManager.TypeCategory.Relation);
 
             PropertyModel propStats = new PropertyModel(vocabulary, entityType, customPropertyModels);
             edgePropertyStats.put(edgeDistribution.type, propStats);

@@ -19,21 +19,21 @@ properties:
         weight: 5
 
 edges:
-  - type: trips.droveFor
+  - type: droveFor
     out:
       existenceProbability: 0.0580
       logMean: 2.6651985
       logSD: 0.2999116
     in:
       existenceProbability: 0.9365
-  - type: documents.usedDocument
+  - type: usedDocument
     out:
       existenceProbability: 0.2315
     in:
       existenceProbability: 1.0000
       logMean: -636.5463
       logSD: 17.5147
-  - type: trips.requested
+  - type: requested
     out:
       existenceProbability: 0.0304
       logMean: 0.4645424
