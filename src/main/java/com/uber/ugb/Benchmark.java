@@ -7,6 +7,7 @@ import com.uber.ugb.db.NoopDB;
 import com.uber.ugb.db.ParallelWriteDBWrapper;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -149,9 +150,9 @@ public class Benchmark {
 
         for (QueriesSpec.Query query : queriesSpec.queries) {
             logger.info("querying " + query.name + "...");
-            Map<String, Long> vertexPartitioner =
+            Map<QualifiedName, Long> vertexPartitioner =
                 gen.getModel().getVertexPartitioner().getPartitionSizes(totalVertices);
-            Long startVertexSetSize = vertexPartitioner.get(query.startVertexLabel);
+            Long startVertexSetSize = vertexPartitioner.get(new QualifiedName(query.startVertexLabel));
             GraphScraper graphScraper = new GraphScraper();
             graphScraper.scrape(db, seed, startVertexSetSize, query, operationCount, concurrency);
         }

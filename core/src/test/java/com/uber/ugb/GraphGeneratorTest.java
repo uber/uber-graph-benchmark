@@ -3,6 +3,7 @@ package com.uber.ugb;
 import com.uber.ugb.db.GremlinDB;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.schema.InvalidSchemaException;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.SchemaUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -49,20 +50,20 @@ public class GraphGeneratorTest extends GraphGenTestBase {
 
         assertTrue(Math.abs(totalVertices - count(graph.traversal().V())) < 5);
 
-        Map<String, Float> weights = gen.getModel().getVertexPartitioner().getWeightByLabel();
+        Map<QualifiedName, Float> weights = gen.getModel().getVertexPartitioner().getWeightByLabel();
         float totalWeight = 0;
-        Map<String, Integer> counts = new HashMap<>();
-        for (Map.Entry<String, Float> e : weights.entrySet()) {
-            String label = e.getKey();
+        Map<QualifiedName, Integer> counts = new HashMap<>();
+        for (Map.Entry<QualifiedName, Float> e : weights.entrySet()) {
+            QualifiedName label = e.getKey();
             totalWeight += e.getValue();
             counts.put(label, 0);
         }
         forAllVertices(graph, vertex -> {
-            String label = vertex.label();
+            QualifiedName label = new QualifiedName(vertex.label());
             counts.put(label, 1 + counts.get(label));
         });
-        for (Map.Entry<String, Integer> e : counts.entrySet()) {
-            String label = e.getKey();
+        for (Map.Entry<QualifiedName, Integer> e : counts.entrySet()) {
+            QualifiedName label = e.getKey();
             int actualCount = e.getValue();
             double idealCount = totalVertices * weights.get(label) / (1.0 * totalWeight);
             assertEquals(idealCount, actualCount, 1.0);

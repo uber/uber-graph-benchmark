@@ -8,8 +8,8 @@ import com.uber.ugb.model.Incidence;
 import com.uber.ugb.model.Partitioner;
 import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.schema.InvalidSchemaException;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.SchemaBuilder;
-import com.uber.ugb.schema.SchemaManager;
 import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.EntityType;
 import com.uber.ugb.schema.model.RelationType;
@@ -68,10 +68,12 @@ public class GraphModelBuilder {
         StatisticsSpec statisticsSpec = objectMapper.readValue(this.statisticsInputStream, StatisticsSpec.class);
 
         Partitioner vertexPartitioner = buildVertexPartitioner(statisticsSpec);
-        LinkedHashMap<String, EdgeModel> edgeModel = buildEdgeModel(vocabulary, statisticsSpec);
+        LinkedHashMap<QualifiedName, EdgeModel> edgeModel = buildEdgeModel(vocabulary, statisticsSpec);
 
-        LinkedHashMap<String, PropertyModel> vertexPropertyModel = buildVertexPropertyModel(vocabulary, statisticsSpec);
-        LinkedHashMap<String, PropertyModel> edgePropertyModel = buildEdgePropertyModel(vocabulary, statisticsSpec);
+        LinkedHashMap<QualifiedName, PropertyModel> vertexPropertyModel =
+            buildVertexPropertyModel(vocabulary, statisticsSpec);
+        LinkedHashMap<QualifiedName, PropertyModel> edgePropertyModel =
+            buildEdgePropertyModel(vocabulary, statisticsSpec);
 
         return new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModel, edgePropertyModel);
 
@@ -89,24 +91,23 @@ public class GraphModelBuilder {
     private Partitioner buildVertexPartitioner(StatisticsSpec statisticsSpec) {
         Partitioner vertexPartitioner = new Partitioner();
         for (StatisticsSpec.VertexWeight vertexWeight : statisticsSpec.vertices) {
-            vertexPartitioner.put(vertexWeight.type, vertexWeight.weight);
+            vertexPartitioner.put(new QualifiedName(vertexWeight.type), vertexWeight.weight);
         }
         return vertexPartitioner;
     }
 
-    private LinkedHashMap<String, EdgeModel> buildEdgeModel(Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
-        LinkedHashMap<String, EdgeModel> edgeModel = new LinkedHashMap<>();
+    private LinkedHashMap<QualifiedName, EdgeModel> buildEdgeModel(Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
+        LinkedHashMap<QualifiedName, EdgeModel> edgeModel = new LinkedHashMap<>();
         for (StatisticsSpec.EdgeDistribution edgeDistribution : statisticsSpec.edges) {
-            RelationType relationType = vocabulary.getRelationType(edgeDistribution.type,
-                SchemaManager.TypeCategory.Relation);
-            edgeModel.put(edgeDistribution.type,
+            RelationType relationType = vocabulary.getRelationType(new QualifiedName(edgeDistribution.type));
+            edgeModel.put(new QualifiedName(edgeDistribution.type),
                 new EdgeModel(
                     new Incidence(
-                        relationType.getFrom().getLabel(),
+                        relationType.getFrom().getName(),
                         edgeDistribution.out.existenceProbability,
                         edgeDistribution.out.toDegreeDistribution()),
                     new Incidence(
-                        relationType.getTo().getLabel(),
+                        relationType.getTo().getName(),
                         edgeDistribution.in.existenceProbability,
                         edgeDistribution.in.toDegreeDistribution())
                 )
@@ -115,39 +116,38 @@ public class GraphModelBuilder {
         return edgeModel;
     }
 
-    private LinkedHashMap<String, PropertyModel> buildVertexPropertyModel(
+    private LinkedHashMap<QualifiedName, PropertyModel> buildVertexPropertyModel(
         Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
 
-        Map<String, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
+        Map<QualifiedName, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
         for (StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
-            customPropertyModels.put(propertyValues.type, propertyValues.propertyValueWeights);
+            customPropertyModels.put(new QualifiedName(propertyValues.type), propertyValues.propertyValueWeights);
         }
 
-        LinkedHashMap<String, PropertyModel> vertexPropertyStats = new LinkedHashMap<>();
+        LinkedHashMap<QualifiedName, PropertyModel> vertexPropertyStats = new LinkedHashMap<>();
         for (StatisticsSpec.VertexWeight vertexWeight : statisticsSpec.vertices) {
-            EntityType entityType = vocabulary.getEntityType(vertexWeight.type);
+            EntityType entityType = vocabulary.getEntityType(new QualifiedName(vertexWeight.type));
 
             PropertyModel propStats = new PropertyModel(vocabulary, entityType, customPropertyModels);
-            vertexPropertyStats.put(vertexWeight.type, propStats);
+            vertexPropertyStats.put(new QualifiedName(vertexWeight.type), propStats);
         }
         return vertexPropertyStats;
     }
 
-    private LinkedHashMap<String, PropertyModel> buildEdgePropertyModel(
+    private LinkedHashMap<QualifiedName, PropertyModel> buildEdgePropertyModel(
         Vocabulary vocabulary, StatisticsSpec statisticsSpec) {
 
-        Map<String, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
+        Map<QualifiedName, StatisticsSpec.PropertyValueWeight[]> customPropertyModels = new HashMap<>();
         for (StatisticsSpec.PropertyValues propertyValues : statisticsSpec.properties) {
-            customPropertyModels.put(propertyValues.type, propertyValues.propertyValueWeights);
+            customPropertyModels.put(new QualifiedName(propertyValues.type), propertyValues.propertyValueWeights);
         }
 
-        LinkedHashMap<String, PropertyModel> edgePropertyStats = new LinkedHashMap<>();
+        LinkedHashMap<QualifiedName, PropertyModel> edgePropertyStats = new LinkedHashMap<>();
         for (StatisticsSpec.EdgeDistribution edgeDistribution : statisticsSpec.edges) {
-            RelationType entityType = vocabulary.getRelationType(edgeDistribution.type,
-                SchemaManager.TypeCategory.Relation);
+            RelationType entityType = vocabulary.getRelationType(new QualifiedName(edgeDistribution.type));
 
             PropertyModel propStats = new PropertyModel(vocabulary, entityType, customPropertyModels);
-            edgePropertyStats.put(edgeDistribution.type, propStats);
+            edgePropertyStats.put(new QualifiedName(edgeDistribution.type), propStats);
         }
         return edgePropertyStats;
     }

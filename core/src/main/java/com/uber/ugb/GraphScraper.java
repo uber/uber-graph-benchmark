@@ -4,6 +4,7 @@ import com.uber.ugb.db.DB;
 import com.uber.ugb.db.QueryCapability;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
@@ -36,9 +37,10 @@ public class GraphScraper {
         executorService.execute(() -> {
             Random random = new Random(seed);
             AtomicLong y = new AtomicLong();
+            QualifiedName startVertexName = new QualifiedName(query.startVertexLabel);
             random.longs(operationCount, 0, outVertexCount).forEach(x -> {
                 try {
-                    tasks.put(new Task(db.genVertexId(query.startVertexLabel, x), y.incrementAndGet()));
+                    tasks.put(new Task(db.genVertexId(startVertexName, x), y.incrementAndGet()));
                 } catch (InterruptedException e) {
                 }
             });

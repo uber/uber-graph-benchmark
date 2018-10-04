@@ -2,6 +2,7 @@ package com.uber.ugb.db;
 
 import com.uber.ugb.measurement.Metrics;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 
 import java.util.Properties;
@@ -80,7 +81,8 @@ public class ParallelWriteDBWrapper extends DB {
         this.db.setProperties(p);
     }
 
-    public Object genVertexId(String label, long id) {
+    @Override
+    public Object genVertexId(QualifiedName label, long id) {
         return this.db.genVertexId(label, id);
     }
 
@@ -152,7 +154,7 @@ public class ParallelWriteDBWrapper extends DB {
     }
 
     @Override
-    public Status writeVertex(String label, Object id, Object... keyValues) {
+    public Status writeVertex(QualifiedName label, Object id, Object... keyValues) {
         try {
             this.todoCounter.incrementAndGet();
             this.todos.put(new VertexWriteRequest(label, id, keyValues));
@@ -163,9 +165,9 @@ public class ParallelWriteDBWrapper extends DB {
     }
 
     @Override
-    public Status writeEdge(String edgeLabel,
-                            String outVertexLabel, Object outVertexId,
-                            String inVertexLabel, Object inVertexId,
+    public Status writeEdge(QualifiedName edgeLabel,
+                            QualifiedName outVertexLabel, Object outVertexId,
+                            QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         try {
             this.todoCounter.incrementAndGet();
@@ -186,11 +188,11 @@ public class ParallelWriteDBWrapper extends DB {
     }
 
     class VertexWriteRequest {
-        String label;
+        QualifiedName label;
         Object id;
         Object[] keyValues;
 
-        public VertexWriteRequest(String label, Object id, Object[] keyValues) {
+        public VertexWriteRequest(QualifiedName label, Object id, Object[] keyValues) {
             this.label = label;
             this.id = id;
             this.keyValues = keyValues;
@@ -198,16 +200,16 @@ public class ParallelWriteDBWrapper extends DB {
     }
 
     class EdgeWriteRequest {
-        String edgeLabel;
-        String outVertexLabel;
+        QualifiedName edgeLabel;
+        QualifiedName outVertexLabel;
         Object outVertexId;
-        String inVertexLabel;
+        QualifiedName inVertexLabel;
         Object inVertexId;
         Object[] keyValues;
 
-        public EdgeWriteRequest(String edgeLabel,
-                                String outVertexLabel, Object outVertexId,
-                                String inVertexLabel, Object inVertexId,
+        public EdgeWriteRequest(QualifiedName edgeLabel,
+                                QualifiedName outVertexLabel, Object outVertexId,
+                                QualifiedName inVertexLabel, Object inVertexId,
                                 Object[] keyValues) {
             this.edgeLabel = edgeLabel;
             this.outVertexLabel = outVertexLabel;

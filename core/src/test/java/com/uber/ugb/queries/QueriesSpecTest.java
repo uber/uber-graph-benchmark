@@ -29,10 +29,10 @@ public class QueriesSpecTest {
         QueriesSpec.Query query = queriesSpec.queries[0];
         Assert.assertEquals("client.trip.driver.payment_profile.payment_instrument", query.name);
         Assert.assertEquals("k-hop", query.type);
-        Assert.assertEquals("User", query.startVertexLabel);
+        Assert.assertEquals("users.User", query.startVertexLabel);
         Assert.assertEquals(4, query.steps.length);
 
-        Assert.assertEquals("requested", query.steps[0].edge.label);
+        Assert.assertEquals("trips.requested", query.steps[0].edge.label);
         Assert.assertEquals(10, query.steps[0].edge.limit);
         Assert.assertEquals("tripAmount", query.steps[0].vertex.select);
 

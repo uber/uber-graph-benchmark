@@ -1,6 +1,7 @@
 package com.uber.ugb.db;
 
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -23,10 +24,10 @@ public class GremlinDB extends DB implements QueryCapability.SupportGremlin {
     }
 
     @Override
-    public Status writeVertex(String label, Object id, Object... keyValues) {
+    public Status writeVertex(QualifiedName label, Object id, Object... keyValues) {
         Object[] params = new Object[keyValues.length + 4];
         params[0] = T.label;
-        params[1] = label;
+        params[1] = label.toString();
         params[2] = T.id;
         params[3] = id;
         for (int i = 0; i < keyValues.length; i++) {
@@ -37,27 +38,27 @@ public class GremlinDB extends DB implements QueryCapability.SupportGremlin {
     }
 
     @Override
-    public Status writeEdge(String edgeLabel,
-                            String outVertexLabel, Object outVertexId,
-                            String inVertexLabel, Object inVertexId,
+    public Status writeEdge(QualifiedName edgeLabel,
+                            QualifiedName outVertexLabel, Object outVertexId,
+                            QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         Vertex outVertex = findVertex(outVertexLabel, outVertexId);
         Vertex inVertex = findVertex(inVertexLabel, inVertexId);
 
         if (outVertex != null && inVertex != null) {
-            outVertex.addEdge(edgeLabel, inVertex, keyValues);
+            outVertex.addEdge(edgeLabel.toString(), inVertex, keyValues);
             return Status.OK;
         }
 
         return Status.ERROR;
     }
 
-    private Vertex findVertex(String vertexLabel, Object vertexId) {
+    private Vertex findVertex(QualifiedName vertexLabel, Object vertexId) {
         Vertex vertex = null;
         Iterator<Vertex> vertexIterator = graph.vertices(vertexId);
         while (vertexIterator.hasNext()) {
             vertex = vertexIterator.next();
-            if (!vertexLabel.equals(vertex.label())) {
+            if (!vertexLabel.toString().equals(vertex.label())) {
                 vertex = null;
             } else {
                 break;

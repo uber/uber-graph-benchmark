@@ -2,7 +2,7 @@ package com.uber.ugb.db;
 
 import com.google.common.base.Strings;
 import com.uber.ugb.queries.QueriesSpec;
-import com.uber.ugb.schema.SchemaManager;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.model.RelationType;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public abstract class AbstractSubgraphDB extends DB {
         return TL_EXECUTOR_BUILDER.get();
     }
 
-    public abstract Properties readVertex(String label, Object id, QueriesSpec.Query.Step.Vertex vertexQuerySpec);
+    public abstract Properties readVertex(QualifiedName label, Object id, QueriesSpec.Query.Step.Vertex vertexQuerySpec);
 
     public abstract List<Subgraph.Edge> readEdges(Object startVertexId, QueriesSpec.Query.Step.Edge edgeQuerySpec);
 
@@ -97,10 +97,9 @@ public abstract class AbstractSubgraphDB extends DB {
 
     private void processVertexToDo(Task task, QueriesSpec.Query.Step step, Subgraph.Edge subgraphEdge) {
 
-        RelationType relationType = vocabulary.getRelationType(step.edge.label, SchemaManager.TypeCategory.Relation);
-        String vertexLabel = step.edge.isBackward()
-            ? relationType.getFrom().getLabel()
-            : relationType.getTo().getLabel();
+        RelationType relationType = vocabulary.getRelationType(new QualifiedName(step.edge.label));
+        QualifiedName vertexLabel = step.edge.isBackward() ?
+            relationType.getFrom().getName() : relationType.getTo().getName();
 
         this.getMetrics().readVertex.measure(() -> {
             Properties vertexProperties = readVertex(vertexLabel, task.id, step.vertex);

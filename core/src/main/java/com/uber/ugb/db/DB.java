@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.uber.ugb.measurement.Metrics;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 
 import java.util.Properties;
@@ -72,10 +73,10 @@ public abstract class DB {
     public void cleanup() throws DBException {
     }
 
-    public abstract Status writeVertex(String label, Object id, Object... keyValues);
+    public abstract Status writeVertex(QualifiedName label, Object id, Object... keyValues);
 
-    public abstract Status writeEdge(String edgeLabel,
-                                     String outVertexLabel, Object outVertexId, String inVertexLabel, Object inVertexId,
+    public abstract Status writeEdge(QualifiedName edgeLabel,
+                                     QualifiedName outVertexLabel, Object outVertexId, QualifiedName inVertexLabel, Object inVertexId,
                                      Object... keyValues);
 
     public abstract Status subgraph(QueriesSpec.Query query, Subgraph subgraph);
@@ -105,9 +106,9 @@ public abstract class DB {
      * @param id
      * @return
      */
-    public Object genVertexId(String label, long id) {
-        long key = UUID.nameUUIDFromBytes((label + id).getBytes()).getLeastSignificantBits();
-        if (key<0){
+    public Object genVertexId(QualifiedName label, long id) {
+        long key = UUID.nameUUIDFromBytes((label.toString() + id).getBytes()).getLeastSignificantBits();
+        if (key < 0) {
             key = -key;
         }
         return key;

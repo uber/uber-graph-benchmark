@@ -1,6 +1,7 @@
 package com.uber.ugb.db;
 
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 
 /*
  * NoopDB does nothing and only returns Status.OK for every operations.
@@ -8,14 +9,14 @@ import com.uber.ugb.queries.QueriesSpec;
 public class NoopDB extends DB {
 
     @Override
-    public Status writeVertex(String label, Object id, Object... keyValues) {
+    public Status writeVertex(QualifiedName label, Object id, Object... keyValues) {
         return Status.OK;
     }
 
     @Override
-    public Status writeEdge(String edgeLabel,
-                            String outVertexLabel, Object outVertexId,
-                            String inVertexLabel, Object inVertexId,
+    public Status writeEdge(QualifiedName edgeLabel,
+                            QualifiedName outVertexLabel, Object outVertexId,
+                            QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         return Status.OK;
     }

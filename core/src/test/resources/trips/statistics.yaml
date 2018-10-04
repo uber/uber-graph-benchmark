@@ -1,9 +1,9 @@
 vertices:
-  - type: User
+  - type: users.User
     weight: 13
-  - type: Trip
+  - type: trips.Trip
     weight: 8
-  - type: Document
+  - type: documents.Document
     weight: 13
 
 # TODO implement property model
@@ -19,21 +19,21 @@ properties:
         weight: 5
 
 edges:
-  - type: droveFor
+  - type: trips.droveFor
     out:
       existenceProbability: 0.0580
       logMean: 2.6651985
       logSD: 0.2999116
     in:
       existenceProbability: 0.9365
-  - type: usedDocument
+  - type: documents.usedDocument
     out:
       existenceProbability: 0.2315
     in:
       existenceProbability: 1.0000
       logMean: -636.5463
       logSD: 17.5147
-  - type: requested
+  - type: trips.requested
     out:
       existenceProbability: 0.0304
       logMean: 0.4645424

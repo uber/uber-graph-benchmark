@@ -7,6 +7,7 @@ import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.model.SimpleProperty;
 import com.uber.ugb.model.distro.DegreeDistribution;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
 import com.uber.ugb.util.RandomPermutation;
 
@@ -34,7 +35,7 @@ public class GraphGenerator {
     private static Logger logger = Logger.getLogger(GraphGenerator.class.getName());
 
     private final GraphModel model;
-    private Map<String, Long> vertexPartition;
+    private Map<QualifiedName, Long> vertexPartition;
     private long batchSize = 1000;
     private int batchCounter = 0;
     private Runnable transactionListener;
@@ -57,7 +58,7 @@ public class GraphGenerator {
         return model;
     }
 
-    public Map<String, Long> getVertexPartition() {
+    public Map<QualifiedName, Long> getVertexPartition() {
         return vertexPartition;
     }
 
@@ -143,8 +144,8 @@ public class GraphGenerator {
     }
 
     private void createVertices(final DB graph) throws IOException {
-        for (Map.Entry<String, Long> e : vertexPartition.entrySet()) {
-            String label = e.getKey();
+        for (Map.Entry<QualifiedName, Long> e : vertexPartition.entrySet()) {
+            QualifiedName label = e.getKey();
             PropertyModel props = model.getVertexPropertyModels().get(label);
             long nVertices = e.getValue();
             logger.info("generating " + nVertices + " " + label + "...");
@@ -158,15 +159,15 @@ public class GraphGenerator {
     }
 
     private void createEdges(final DB graph) {
-        for (Map.Entry<String, EdgeModel> e : model.getEdgeModels().entrySet()) {
+        for (Map.Entry<QualifiedName, EdgeModel> e : model.getEdgeModels().entrySet()) {
             createEdges(e.getKey(), e.getValue(), graph);
         }
     }
 
-    private void createEdges(final String edgeLabel, final EdgeModel edgeStats, final DB graph) {
+    private void createEdges(final QualifiedName edgeLabel, final EdgeModel edgeStats, final DB graph) {
 
-        String domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
-        String rangeLabel = edgeStats.getRangeIncidence().getVertexLabel();
+        QualifiedName domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
+        QualifiedName rangeLabel = edgeStats.getRangeIncidence().getVertexLabel();
 
         long domainSize = vertexPartition.get(domainLabel);
         long rangeSize = vertexPartition.get(rangeLabel);
@@ -230,7 +231,7 @@ public class GraphGenerator {
         progressReporter.report(totalEdge);
     }
 
-    private void createVertex(final String label, long id, final DB graph, final PropertyModel props) {
+    private void createVertex(final QualifiedName label, long id, final DB graph, final PropertyModel props) {
 
         Object vertexId = graph.genVertexId(label, id);
         Object[] params = new Object[(props == null ? 0 : props.getProperties().size() * 2)];
@@ -239,7 +240,7 @@ public class GraphGenerator {
             int i = 0;
             for (SimpleProperty prop : props.getProperties()) {
                 params[i] = prop.getKey();
-                Object value = prop.getValueGenerator().generate(this.randomSeed, label, id, prop.getKey());
+                Object value = prop.getValueGenerator().generate(this.randomSeed, label.toString(), id, prop.getKey());
                 params[i + 1] = value;
                 i += 2;
             }
@@ -248,9 +249,9 @@ public class GraphGenerator {
         incrementBatchCounter(graph);
     }
 
-    private void createEdge(final String label,
-                            String tailLabel, final long tailIndex,
-                            String headLabel, final long headIndex,
+    private void createEdge(final QualifiedName label,
+                            QualifiedName tailLabel, final long tailIndex,
+                            QualifiedName headLabel, final long headIndex,
                             final DB graph) {
         Object tailId = graph.genVertexId(tailLabel, tailIndex);
         Object headId = graph.genVertexId(headLabel, headIndex);

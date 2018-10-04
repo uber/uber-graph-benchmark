@@ -1,28 +1,28 @@
 queries:
 - name: client.trip.driver.payment_profile.payment_instrument
   type: k-hop
-  startVertexLabel: User
+  startVertexLabel: users.User
   # if supported, the native query will be used instead of steps
   gremlinQuery: >
     g.V(x)
-    .outE('requested').order().by('ts', decr).limit(10).subgraph('s').outV()
-    .inE('droveFor').inV()
-    .outE('usedPaymentProfile').subgraph('s').outV()
-    .outE('registeredPi').subgraph('s').outV()
+    .outE('trips.requested').order().by('ts', decr).limit(10).subgraph('s').outV()
+    .inE('trips.droveFor').inV()
+    .outE('payments.usedPaymentProfile').subgraph('s').outV()
+    .outE('payments.registeredPi').subgraph('s').outV()
     .cap('s').next()
   steps:
   - edge:
-      label: requested
+      label: trips.requested
       limit: 10
       orderByTs: true
     vertex:
       select: tripAmount
   - edge:
-      label: droveFor
+      label: trips.droveFor
       direction: in
     vertex:
       select: email
   - edge:
-      label: usedPaymentProfile
+      label: payments.usedPaymentProfile
   - edge:
-      label: registeredPi
+      label: payments.registeredPi

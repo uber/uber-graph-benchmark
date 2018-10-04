@@ -1,24 +1,25 @@
 queries:
-- name: client.trip.driver.payment_profile.payment_instrument
+- name: client.trip.driver.document.email
   type: k-hop
-  startVertexLabel: User
+  startVertexLabel: users.User
   #    .outE('requested').order().by('ts', decr).limit(10).subgraph('s').outV()
   #    .inE('drove_for').inV()
   gremlinQuery: >
     g.V(x)
-    .outE('usedPaymentProfile').subgraph('s').outV()
-    .outE('registeredPi').subgraph('s').outV()
+    .outE('trips.requested').subgraph('s').outV()
+    .outE('trips.droveFor').subgraph('s').outV()
+    .outE('documents.usedDocument').subgraph('s').outV()
     .cap('s').next()
   steps:
   - edge:
-      label: requested
+      label: trips.requested
       limit: 10
     vertex:
       select: tripAmount
   - edge:
-      label: droveFor
+      label: trips.droveFor
       direction: in
     vertex:
       select: email
   - edge:
-      label: usedDocument
+      label: documents.usedDocument

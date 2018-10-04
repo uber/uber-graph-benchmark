@@ -3,6 +3,7 @@ package com.uber.ugb.model;
 import com.uber.ugb.model.generator.Generator;
 import com.uber.ugb.model.generator.GeneratorFactory;
 import com.uber.ugb.model.generator.WeightedValueslGenerator;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.EntityType;
 import com.uber.ugb.schema.model.RelationType;
@@ -23,7 +24,7 @@ public class PropertyModel implements Serializable {
     private static final GeneratorFactory generatorFactory = new GeneratorFactory();
 
     public PropertyModel(Vocabulary vocabulary, Type entityType,
-                         Map<String, StatisticsSpec.PropertyValueWeight[]> propertyModels) {
+                         Map<QualifiedName, StatisticsSpec.PropertyValueWeight[]> propertyModels) {
         Set<RelationType> propertiesAndEdges = vocabulary.getConcreteRelationTypesFrom(entityType);
         for(RelationType relationType: propertiesAndEdges){
             if (!(relationType.getTo() instanceof EntityType)){

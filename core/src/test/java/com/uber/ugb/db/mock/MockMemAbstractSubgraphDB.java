@@ -4,6 +4,7 @@ import com.uber.ugb.db.AbstractSubgraphDB;
 import com.uber.ugb.db.Status;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +23,7 @@ public class MockMemAbstractSubgraphDB extends AbstractSubgraphDB {
     }
 
     @Override
-    public Status writeVertex(String label, Object id, Object... keyValues) {
+    public Status writeVertex(QualifiedName label, Object id, Object... keyValues) {
         Long vid = (Long) id;
 
         Vertex vertex = new Vertex(label, vid, toProperties(keyValues));
@@ -31,21 +32,21 @@ public class MockMemAbstractSubgraphDB extends AbstractSubgraphDB {
     }
 
     @Override
-    public Status writeEdge(String edgeLabel,
-                            String outVertexLabel, Object outVertexId,
-                            String inVertexLabel, Object inVertexId,
+    public Status writeEdge(QualifiedName edgeLabel,
+                            QualifiedName outVertexLabel, Object outVertexId,
+                            QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         Vertex outVertex = vertices.get(outVertexId);
         Vertex inVertex = vertices.get(inVertexId);
 
         Properties edgeProperties = toProperties(keyValues);
         outVertex.addEdge(edgeLabel, (long) inVertexId, edgeProperties);
-        inVertex.addEdge(edgeLabel + REVERSE_SUFFIX, (long) outVertexId, edgeProperties);
+        inVertex.addEdge(new QualifiedName(edgeLabel.toString() + REVERSE_SUFFIX), (long) outVertexId, edgeProperties);
         return Status.OK;
     }
 
     @Override
-    public Properties readVertex(String label, Object id, QueriesSpec.Query.Step.Vertex vertexQuerySpec) {
+    public Properties readVertex(QualifiedName label, Object id, QueriesSpec.Query.Step.Vertex vertexQuerySpec) {
         Vertex vertex = vertices.get(id);
         return vertex == null ? null : extractProperties(vertex.properties, vertexQuerySpec.select, null);
     }
@@ -58,7 +59,7 @@ public class MockMemAbstractSubgraphDB extends AbstractSubgraphDB {
             return new ArrayList<>();
         }
         List<Subgraph.Edge> foundEdges = new ArrayList<>();
-        List<Edge> edgeList = startVertex.edges.getOrDefault(edgeLabel, new ArrayList<>());
+        List<Edge> edgeList = startVertex.edges.getOrDefault(new QualifiedName(edgeLabel), new ArrayList<>());
         for (Edge edge : edgeList) {
             Subgraph.Edge foundEdge = new Subgraph.Edge(startVertexId, edge.nextVertexId, edge.edgeProperties);
             foundEdges.add(foundEdge);
@@ -86,18 +87,18 @@ public class MockMemAbstractSubgraphDB extends AbstractSubgraphDB {
 
     private static class Vertex {
         long id;
-        String label;
+        QualifiedName label;
         Properties properties;
-        Map<String, List<Edge>> edges;
+        Map<QualifiedName, List<Edge>> edges;
 
-        Vertex(String label, long id, Properties properties) {
+        Vertex(QualifiedName label, long id, Properties properties) {
             this.id = id;
             this.label = label;
             this.properties = properties;
             this.edges = new HashMap<>();
         }
 
-        void addEdge(String egdeLabel, long otherVertexId, Properties properties) {
+        void addEdge(QualifiedName egdeLabel, long otherVertexId, Properties properties) {
             List<Edge> adjacencyList = this.edges.computeIfAbsent(egdeLabel, k -> {
                 return new ArrayList<>();
             });

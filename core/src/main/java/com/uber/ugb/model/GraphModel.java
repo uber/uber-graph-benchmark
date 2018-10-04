@@ -1,5 +1,6 @@
 package com.uber.ugb.model;
 
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 
 import java.io.ByteArrayOutputStream;
@@ -17,9 +18,9 @@ public class GraphModel implements Serializable {
 
     private final Vocabulary schemaVocabulary;
     private final Partitioner vertexPartitioner;
-    private final LinkedHashMap<String, EdgeModel> edgeModels;
-    private final LinkedHashMap<String, PropertyModel> vertexPropertyModels;
-    private final LinkedHashMap<String, PropertyModel> edgePropertyModels;
+    private final LinkedHashMap<QualifiedName, EdgeModel> edgeModels;
+    private final LinkedHashMap<QualifiedName, PropertyModel> vertexPropertyModels;
+    private final LinkedHashMap<QualifiedName, PropertyModel> edgePropertyModels;
 
     /**
      * Constructs a new graph model
@@ -35,9 +36,9 @@ public class GraphModel implements Serializable {
      */
     public GraphModel(final Vocabulary schemaVocabulary,
                       final Partitioner vertexPartitioner,
-                      final LinkedHashMap<String, EdgeModel> edgeModels,
-                      final LinkedHashMap<String, PropertyModel> vertexPropertyModels,
-                      final LinkedHashMap<String, PropertyModel> edgePropertyModels) {
+                      final LinkedHashMap<QualifiedName, EdgeModel> edgeModels,
+                      final LinkedHashMap<QualifiedName, PropertyModel> vertexPropertyModels,
+                      final LinkedHashMap<QualifiedName, PropertyModel> edgePropertyModels) {
         this.schemaVocabulary = schemaVocabulary;
         this.vertexPartitioner = vertexPartitioner;
         this.edgeModels = edgeModels;
@@ -49,15 +50,15 @@ public class GraphModel implements Serializable {
         return vertexPartitioner;
     }
 
-    public Map<String, EdgeModel> getEdgeModels() {
+    public Map<QualifiedName, EdgeModel> getEdgeModels() {
         return edgeModels;
     }
 
-    public Map<String, PropertyModel> getVertexPropertyModels() {
+    public Map<QualifiedName, PropertyModel> getVertexPropertyModels() {
         return vertexPropertyModels;
     }
 
-    public Map<String, PropertyModel> getEdgePropertyModels() {
+    public Map<QualifiedName, PropertyModel> getEdgePropertyModels() {
         return edgePropertyModels;
     }
 

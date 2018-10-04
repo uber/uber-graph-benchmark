@@ -6,6 +6,7 @@ import com.uber.ugb.db.KeyValueDB;
 import com.uber.ugb.db.PrefixKeyValueDB;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 import org.junit.Test;
 
@@ -25,13 +26,13 @@ public class GraphDbReadWriteTest {
         // step 1
         query.steps[0] = new QueriesSpec.Query.Step();
         query.steps[0].edge = new QueriesSpec.Query.Step.Edge();
-        query.steps[0].edge.label = "usedDocument";
+        query.steps[0].edge.label = "documents.usedDocument";
         query.steps[0].vertex = new QueriesSpec.Query.Step.Vertex();
         query.steps[0].vertex.select = "documentType";
         // step 2
         query.steps[1] = new QueriesSpec.Query.Step();
         query.steps[1].edge = new QueriesSpec.Query.Step.Edge();
-        query.steps[1].edge.label = "usedDocument";
+        query.steps[1].edge.label = "documents.usedDocument";
         query.steps[1].edge.direction = "in";
         query.steps[1].edge.select = "status";
         query.steps[1].edge.filter = "status = 'active'";
@@ -65,24 +66,33 @@ public class GraphDbReadWriteTest {
         Vocabulary vocabulary = graphGenerator.getModel().getSchemaVocabulary();
         db.setVocabulary(vocabulary);
 
-        db.writeVertex("User", 1L, "name", "name1");
-        db.writeVertex("User", 2L, "name", "name2");
-        db.writeVertex("User", 3L, "name", "name3");
-        db.writeVertex("User", 4L, "name", "name4");
-        db.writeVertex("User", 5L, "name", "name5");
-        db.writeVertex("Document", 11L, "documentType", "DRIVER_LICENSE", "documentId", "1234345");
-        db.writeVertex("Document", 12L);
-        db.writeVertex("Document", 13L);
-        db.writeVertex("Document", 14L);
-        db.writeVertex("Document", 15L);
-        db.writeEdge("usedDocument", "User", 1L, "Document", 11L, "status", "active");
-        db.writeEdge("usedDocument", "User", 2L, "Document", 11L, "status", "active");
-        db.writeEdge("usedDocument", "User", 2L, "Document", 12L);
-        db.writeEdge("usedDocument", "User", 3L, "Document", 11L, "status", "active");
-        db.writeEdge("usedDocument", "User", 3L, "Document", 12L);
-        db.writeEdge("usedDocument", "User", 3L, "Document", 13L);
-        db.writeEdge("usedDocument", "User", 4L, "Document", 11L, "status", "inactive");
-        db.writeEdge("usedDocument", "User", 5L, "Document", 11L, "status", "active");
+        db.writeVertex(new QualifiedName("users.User"), 1L, "name", "name1");
+        db.writeVertex(new QualifiedName("users.User"), 2L, "name", "name2");
+        db.writeVertex(new QualifiedName("users.User"), 3L, "name", "name3");
+        db.writeVertex(new QualifiedName("users.User"), 4L, "name", "name4");
+        db.writeVertex(new QualifiedName("users.User"), 5L, "name", "name5");
+        db.writeVertex(new QualifiedName("documents.Document"), 11L,
+            "documentType", "DRIVER_LICENSE", "documentId", "1234345");
+        db.writeVertex(new QualifiedName("documents.Document"), 12L);
+        db.writeVertex(new QualifiedName("documents.Document"), 13L);
+        db.writeVertex(new QualifiedName("documents.Document"), 14L);
+        db.writeVertex(new QualifiedName("documents.Document"), 15L);
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 1L, new QualifiedName("documents.Document"), 11L, "status", "active");
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 2L, new QualifiedName("documents.Document"), 11L, "status", "active");
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 2L, new QualifiedName("documents.Document"), 12L);
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 3L, new QualifiedName("documents.Document"), 11L, "status", "active");
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 3L, new QualifiedName("documents.Document"), 12L);
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 3L, new QualifiedName("documents.Document"), 13L);
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 4L, new QualifiedName("documents.Document"), 11L, "status", "inactive");
+        db.writeEdge(new QualifiedName("documents.usedDocument"),
+            new QualifiedName("users.User"), 5L, new QualifiedName("documents.Document"), 11L, "status", "active");
     }
 
     @Test

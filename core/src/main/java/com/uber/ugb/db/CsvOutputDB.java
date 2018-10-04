@@ -1,6 +1,7 @@
 package com.uber.ugb.db;
 
 import com.uber.ugb.queries.QueriesSpec;
+import com.uber.ugb.schema.QualifiedName;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -36,7 +37,7 @@ public class CsvOutputDB extends DB {
     }
 
     @Override
-    public Status writeVertex(String label, Object id, Object... keyValues) {
+    public Status writeVertex(QualifiedName label, Object id, Object... keyValues) {
         synchronized (out){
             out.print("v:");
             out.print(label);
@@ -52,9 +53,9 @@ public class CsvOutputDB extends DB {
     }
 
     @Override
-    public Status writeEdge(String edgeLabel,
-                            String outVertexLabel, Object outVertexId,
-                            String inVertexLabel, Object inVertexId,
+    public Status writeEdge(QualifiedName edgeLabel,
+                            QualifiedName outVertexLabel, Object outVertexId,
+                            QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         synchronized (out){
             out.print("e:");

@@ -3,6 +3,7 @@ package com.uber.ugb.model;
 import com.uber.ugb.model.distro.ConstantDegreeDistribution;
 import com.uber.ugb.model.distro.LogNormalDegreeDistribution;
 import com.uber.ugb.schema.InvalidSchemaException;
+import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.SchemaBuilder;
 import com.uber.ugb.schema.Vocabulary;
 import com.uber.ugb.schema.model.dto.EntityTypeDTO;
@@ -48,13 +49,13 @@ public class GraphModelTest {
         return new EdgeModel(domain, range);
     }
 
-    private static Incidence domain(final String vertexLabel,
+    private static Incidence domain(final QualifiedName vertexLabel,
                                     final double existenceProbability) {
         return new Incidence(
             vertexLabel, existenceProbability, new ConstantDegreeDistribution(1));
     }
 
-    private static Incidence domain(final String vertexLabel,
+    private static Incidence domain(final QualifiedName vertexLabel,
                                     final double existenceProbability,
                                     final double logMean,
                                     final double logSD) {
@@ -67,17 +68,15 @@ public class GraphModelTest {
         Vocabulary vocabulary = createVocabulary();
 
         Partitioner vertexPartitioner = new Partitioner();
-        vertexPartitioner.put("Monkey", 1);
-        vertexPartitioner.put("Weasel", 1);
+        vertexPartitioner.put(new QualifiedName("Monkey"), 1);
+        vertexPartitioner.put(new QualifiedName("Weasel"), 1);
 
-        LinkedHashMap<String, EdgeModel> edgeModel = new LinkedHashMap<>();
-        edgeModel.put("chased", edge(
-            domain("Monkey",
-                0.9543, 0.7813873, 1.0293729),
-            domain("Weasel",
-                1.0000)));
-        LinkedHashMap<String, PropertyModel> vertexPropertyModels = new LinkedHashMap<>();
-        LinkedHashMap<String, PropertyModel> edgePropertyModels = new LinkedHashMap<>();
+        LinkedHashMap<QualifiedName, EdgeModel> edgeModel = new LinkedHashMap<>();
+        edgeModel.put(new QualifiedName("chased"), edge(
+            domain(new QualifiedName("Monkey"), 0.9543, 0.7813873, 1.0293729),
+            domain(new QualifiedName("Weasel"), 1.0000)));
+        LinkedHashMap<QualifiedName, PropertyModel> vertexPropertyModels = new LinkedHashMap<>();
+        LinkedHashMap<QualifiedName, PropertyModel> edgePropertyModels = new LinkedHashMap<>();
 
         GraphModel model = new GraphModel(
             vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
@@ -90,17 +89,17 @@ public class GraphModelTest {
         secondHash = model.getHash();
         assertEquals(firstHash, secondHash);
 
-        vertexPartitioner.put("MulberryBush", 5);
+        vertexPartitioner.put(new QualifiedName("MulberryBush"), 5);
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         secondHash = model.getHash();
         assertNotEquals(firstHash, secondHash);
 
-        vertexPartitioner.put("MulberryBush", 5);
+        vertexPartitioner.put(new QualifiedName("MulberryBush"), 5);
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         String thirdHash = model.getHash();
         assertEquals(secondHash, thirdHash);
 
-        vertexPartitioner.put("MulberryBush", 7);
+        vertexPartitioner.put(new QualifiedName("MulberryBush"), 7);
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         thirdHash = model.getHash();
         assertNotEquals(secondHash, thirdHash);
@@ -117,30 +116,24 @@ public class GraphModelTest {
         */
 
         edgeModel = new LinkedHashMap<>();
-        edgeModel.put("chased", edge(
-            domain("Monkey",
-                0.9543, 0.7813873, 1.0293729),
-            domain("Weasel",
-                0.5))); // change probability
+        edgeModel.put(new QualifiedName("chased"), edge(
+            domain(new QualifiedName("Monkey"), 0.9543, 0.7813873, 1.0293729),
+            domain(new QualifiedName("Weasel"), 0.5))); // change probability
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         String fifthHash = model.getHash();
         assertNotEquals(thirdHash, fifthHash);
 
         edgeModel = new LinkedHashMap<>();
-        edgeModel.put("chased", edge(
-            domain("Monkey",
-                0.9543, 0.5, 1.5), // change log-normal params
-            domain("Weasel",
-                0.5)));
+        edgeModel.put(new QualifiedName("chased"), edge(
+            domain(new QualifiedName("Monkey"), 0.9543, 0.5, 1.5), // change log-normal params
+            domain(new QualifiedName("Weasel"), 0.5)));
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         String sixthHash = model.getHash();
         assertNotEquals(fifthHash, sixthHash);
 
-        edgeModel.put("popped", edge(
-            domain("Weasel",
-                0.5),
-            domain("Monkey",
-                0.5)));
+        edgeModel.put(new QualifiedName("popped"), edge(
+            domain(new QualifiedName("Weasel"), 0.5),
+            domain(new QualifiedName("Monkey"), 0.5)));
         model = new GraphModel(vocabulary, vertexPartitioner, edgeModel, vertexPropertyModels, edgePropertyModels);
         String seventhHash = model.getHash();
         assertNotEquals(sixthHash, seventhHash);

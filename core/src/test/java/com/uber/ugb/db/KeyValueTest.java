@@ -1,5 +1,6 @@
 package com.uber.ugb.db;
 
+import com.uber.ugb.schema.QualifiedName;
 import org.junit.Test;
 
 import java.util.List;
@@ -42,8 +43,8 @@ public class KeyValueTest {
         Long inVertexId = 100L;
         String edgeLabel = "some_edge";
 
-        byte[] key = db.genEdgeKey(edgeLabel, startVertexId, inVertexId, false);
-        byte[] prefix = db.genEdgeKeyPrefix(edgeLabel, startVertexId, false);
+        byte[] key = db.genEdgeKey(new QualifiedName(edgeLabel), startVertexId, inVertexId, false);
+        byte[] prefix = db.genEdgeKeyPrefix(new QualifiedName(edgeLabel), startVertexId, false);
 
         for (int i = 0; i < prefix.length; i++) {
             assertEquals(prefix[i], key[i]);
