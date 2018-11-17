@@ -46,7 +46,7 @@ public class GraphScraper {
             });
         });
 
-        ProgressReporter progressReporter = new ProgressReporter("query", operationCount, 100L);
+        ProgressReporter progressReporter = new ProgressReporter("query", 0, operationCount, 100L);
 
         AtomicLong queryCount = new AtomicLong();
 

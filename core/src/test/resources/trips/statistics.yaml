@@ -4,7 +4,7 @@ vertices:
   - type: trips.Trip
     weight: 8
   - type: documents.Document
-    weight: 13
+    weight: 1
 
 # TODO implement property model
 # Undefined property defaults to uniform random property model for the property type

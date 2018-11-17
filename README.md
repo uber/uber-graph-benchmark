@@ -16,7 +16,7 @@ Getting Started
 
   Here is an example of running RedisDB
   ```sh
-  @ generates and writes to redis db, then reads with subgraph queries
+  # generates and writes to redis db, then reads with subgraph queries
   ./gradlew execute -PmainArgs="-db com.uber.ugb.db.redis.RedisDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r"
 
   # this generate vertices and edges and write to noop, used for measuring data gen performance
@@ -50,3 +50,19 @@ To add a new DB implementation, consider inherit from
 
     This processes gremlin queries directly.
 
+
+
+Build
+---------------
+  * create jar
+   ```sh
+   ./gradlew jar
+   ```
+  * build fat jar for spark
+   ```sh
+   ./gradlew build
+   ```
+
+
+Run on Spark
+---------------

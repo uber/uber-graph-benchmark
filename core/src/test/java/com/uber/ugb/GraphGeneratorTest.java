@@ -48,7 +48,9 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         GraphGenerator gen = newGraphGenerator();
         gen.generateTo(gremlinDB, totalVertices);
 
-        assertTrue(Math.abs(totalVertices - count(graph.traversal().V())) < 5);
+        long found = count(graph.traversal().V());
+
+        assertTrue(Math.abs(totalVertices - found) < 5);
 
         Map<QualifiedName, Float> weights = gen.getModel().getVertexPartitioner().getWeightByLabel();
         float totalWeight = 0;
@@ -71,21 +73,6 @@ public class GraphGeneratorTest extends GraphGenTestBase {
     }
 
     @Test
-    public void graphEdgesAreNondeterministicIfRandomSeedIsNotSet() throws Exception {
-        int totalVertices = 10000;
-        long prevCount = 0L;
-        for (int i = 0; i < 10; i++) {
-            long count = generateGraphAndCountEdges(totalVertices, 0);
-            if (i > 0 && count != prevCount) {
-                return;
-            }
-            Thread.sleep(1);
-            prevCount = count;
-        }
-        fail("all graphs have the same number of edges");
-    }
-
-    @Test
     public void graphEdgesAreDeterministicIfRandomSeedIsSet() throws Exception {
         int totalVertices = 10000;
         long prevCount = 0L;
@@ -99,52 +86,6 @@ public class GraphGeneratorTest extends GraphGenTestBase {
             prevCount = count;
         }
     }
-
-    /*
-    @Test
-    public void csvPropertiesAreWrittenToFiles() throws Exception {
-        GraphGenerator gen = newGraphGenerator();
-        Set<RelationType> csvProps = new HashSet<>();
-        //csvProps.add(gen.getModel().getSchemaVocabulary().getRelationTypes().get(
-        //        new QualifiedName("core", "uuid")));
-        gen.setCsvProps(csvProps);
-        File dir = createTempDir();
-        gen.setCsvDir(dir);
-
-        int nVertices = 100;
-        Graph graph = SchemaUtils.createTinkerGraph();
-        gen.generateTo(graph, nVertices);
-        File uuidFile = new File(dir, "core.uuid.csv");
-        assertTrue(uuidFile.exists());
-
-        Map<String, String> labelById = new HashMap<>();
-        Map<String, String> uuidById = new HashMap<>();
-        int count = 0;
-        try (InputStream in = new FileInputStream(uuidFile)) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String line;
-            while (null != (line = reader.readLine())) {
-                String[] a = line.split(",");
-                assertEquals(3, a.length);
-                String id = a[0];
-                String label = a[1];
-                String value = a[2];
-                labelById.put(id, label);
-                uuidById.put(id, value);
-                count++;
-            }
-        }
-        assertEquals(nVertices, count);
-
-        assertEquals(nVertices, count(graph.traversal().V()));
-        Iterator<Vertex> iter = graph.traversal().V();
-        while (iter.hasNext()) {
-            Vertex v = iter.next();
-            assertEquals(v.property("uuid").value().toString(), uuidById.get(v.id().toString()));
-            assertEquals(v.label(), labelById.get(v.id().toString()));
-        }
-    }
-    */
 
     @Ignore
     @Test

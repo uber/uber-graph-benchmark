@@ -8,15 +8,17 @@ public class ProgressReporter {
     private static Logger logger = Logger.getLogger(ProgressReporter.class.getName());
 
     String prefix;
-    AtomicLong totalCount;
+    AtomicLong start;
+    AtomicLong stop;
     boolean verbose;
     AtomicLong lastLogTime;
     AtomicLong lastCount;
     long countInterval;
 
-    public ProgressReporter(String prefix, long totalCount, long countInterval) {
+    public ProgressReporter(String prefix, long start, long stop, long countInterval) {
         this.prefix = prefix;
-        this.totalCount = new AtomicLong(totalCount);
+        this.start = new AtomicLong(start);
+        this.stop = new AtomicLong(stop);
         this.verbose = true;
         this.lastLogTime = new AtomicLong(System.currentTimeMillis());
         this.lastCount = new AtomicLong();
@@ -33,11 +35,11 @@ public class ProgressReporter {
         long now = System.currentTimeMillis();
         long deltaTime = now - lastLogTime.get();
         if (deltaTime > 2000L) {
-            logger.info(String.format("%s:%d/%d %.1fk/s %.2f%%",
+            logger.info(String.format("%s:%d/[%d,%d) %.1fk/s %.2f%%",
                 prefix,
-                count, totalCount.get(),
+                count, start.get(), stop.get(),
                 (count - lastCount.get()) / (float) (deltaTime),
-                (count * 100.0f / totalCount.get())
+                ((count-start.get()) * 100.0f / (stop.get()-start.get()))
             ));
             lastLogTime.set(now);
             lastCount.set(count);

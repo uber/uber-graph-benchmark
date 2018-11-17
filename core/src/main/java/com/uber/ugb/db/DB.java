@@ -7,11 +7,12 @@ import com.uber.ugb.queries.QueriesSpec;
 import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.schema.Vocabulary;
 
+import java.io.Serializable;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class DB {
+public abstract class DB implements Serializable {
 
     protected Vocabulary vocabulary;
     /**

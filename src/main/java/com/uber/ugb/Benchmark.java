@@ -12,6 +12,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +48,7 @@ public class Benchmark {
             "the folder containing all the graph definitions with the schema and distribution yaml files");
         options.addOption("b", "benchload", true,
             "the workload file name describing the graph to generate and the data to read");
+        options.addOption("s", "spark", false, "generate data via spark");
 
         try {
             // parse the command line arguments
@@ -56,6 +59,7 @@ public class Benchmark {
             boolean hasRead = line.hasOption("r");
             boolean hasWrite = line.hasOption("w");
             String workloadFile = line.getOptionValue("b", "benchdata/workloads/workloada");
+            boolean isSpark = line.hasOption("s");
 
             System.out.println("-db=" + dbname);
             System.out.println("-g=" + graphDir);
@@ -104,7 +108,17 @@ public class Benchmark {
                     ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(db, writeConcurrency);
                     pdb.startup();
 
-                    gen.generateTo(pdb, totalVertices);
+                    if (!isSpark) {
+
+                        gen.generateTo(pdb, totalVertices);
+
+                    } else {
+
+                        SparkConf sparkConf = new SparkConf(true).setAppName("UberGraphBenchmark Generator");
+                        JavaSparkContext javaSparkContext = new JavaSparkContext(sparkConf);
+                        gen.generateTo(javaSparkContext, pdb, totalVertices);
+
+                    }
 
                     pdb.shutdown();
 

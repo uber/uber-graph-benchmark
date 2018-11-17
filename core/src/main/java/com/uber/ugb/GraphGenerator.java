@@ -10,9 +10,14 @@ import com.uber.ugb.model.distro.DegreeDistribution;
 import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
 import com.uber.ugb.util.RandomPermutation;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
 
-import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
@@ -24,25 +29,21 @@ import java.util.logging.Logger;
  * Also by design, the statistics of the generated graph are independent of the scale of the graph,
  * which is measured in number of vertices.
  */
-public class GraphGenerator {
+public class GraphGenerator implements Serializable {
 
     // an internal version number which tracks changes affecting graph generation.
     // Whenever there is a possibility that a code change will result in a different graph
     // (despite identical model, size, and seed value), this version should be changed so as to avoid
     // two distinct generated graphs sharing a name.
     static final String VERSION = "v1";
-
+    private static final int PARTITION_COUNT = 64;
     private static Logger logger = Logger.getLogger(GraphGenerator.class.getName());
-
     private final GraphModel model;
+    // used in random permutations and degree distributions
+    protected long randomSeed;
     private Map<QualifiedName, Long> vertexPartition;
     private long batchSize = 1000;
     private int batchCounter = 0;
-    private Runnable transactionListener;
-
-    // used in random permutations and degree distributions
-    protected long randomSeed;
-    private Random random;
 
     /**
      * Creates a new generator with the given statistical model
@@ -84,17 +85,6 @@ public class GraphGenerator {
      */
     public void setRandomSeed(final long randomSeed) {
         this.randomSeed = randomSeed;
-        random = new Random(randomSeed);
-    }
-
-    /**
-     * Sets a listener for commit events
-     *
-     * @param listener a task which is invoked each time data is committed to the graph.
-     *                 By default, there is no listener.
-     */
-    public void setTransactionListener(final Runnable listener) {
-        this.transactionListener = listener;
     }
 
     /**
@@ -103,20 +93,75 @@ public class GraphGenerator {
      * @param graph         the property graph to which generated elements are to be added
      * @param totalVertices the size of the generated graph, in terms of vertices
      */
-    public synchronized void generateTo(final DB graph, final long totalVertices) throws IOException {
+    public synchronized void generateTo(final DB graph, final long totalVertices) {
         Preconditions.checkNotNull(graph);
         Preconditions.checkArgument(totalVertices > 0);
 
         graph.setVocabulary(getModel().getSchemaVocabulary());
-
         vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
 
+        long vertexPartitionSize = Math.floorDiv(totalVertices, PARTITION_COUNT) + 1;
+        long totalEdges = countTotalEdges();
+        long edgePartitionSize = Math.floorDiv(totalEdges, PARTITION_COUNT) + 1;
+
         long time = timeTask(() -> {
-            createVertices(graph);
-            createEdges(graph);
+            for (long i = 0; i < PARTITION_COUNT; i++) {
+                long start = i * vertexPartitionSize;
+                long stop = Math.min(i * vertexPartitionSize + vertexPartitionSize, totalVertices);
+                createVertices(start, stop, graph);
+            }
+            for (long i = 0; i < PARTITION_COUNT; i++) {
+                long start = i * edgePartitionSize;
+                long stop = Math.min(i * edgePartitionSize + edgePartitionSize, totalEdges);
+                createEdges(start, stop, graph, new Random(randomSeed + i));
+            }
             commit(graph);
         });
         logger.info("generated graph of " + totalVertices + " vertices in " + time + "ms");
+    }
+
+    /**
+     * Generates a graph with a given number of vertices.
+     *
+     * @param graph         the property graph to which generated elements are to be added
+     * @param totalVertices the size of the generated graph, in terms of vertices
+     */
+    public synchronized void generateTo(JavaSparkContext javaSparkContext,
+                                        final DB graph, final long totalVertices) {
+        Preconditions.checkNotNull(graph);
+        Preconditions.checkArgument(totalVertices > 0);
+
+        graph.setVocabulary(getModel().getSchemaVocabulary());
+        vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
+
+        long vertexPartitionSize = Math.floorDiv(totalVertices, PARTITION_COUNT) + 1;
+        long totalEdges = countTotalEdges();
+        long edgePartitionSize = Math.floorDiv(totalEdges, PARTITION_COUNT) + 1;
+
+        List<Integer> parts = new ArrayList<>();
+        for (int i = 0; i < PARTITION_COUNT; i++) {
+            parts.add(i);
+        }
+        JavaRDD<Integer> range = javaSparkContext.parallelize(parts);
+
+        range = range.map((Function<Integer, Integer>) i -> {
+            long start = i * vertexPartitionSize;
+            long stop = Math.min(i * vertexPartitionSize + vertexPartitionSize, totalVertices);
+            createVertices(start, stop, graph);
+            return i;
+        });
+
+        range.count();
+
+        range.map((Function<Integer, Integer>) i -> {
+            long start = i * edgePartitionSize;
+            long stop = Math.min(i * edgePartitionSize + edgePartitionSize, totalEdges);
+            createEdges(start, stop, graph, new Random(randomSeed + i));
+            return i;
+        });
+
+        commit(graph);
+
     }
 
     private <E extends Exception> long timeTask(final RunnableWithException<E> task) throws E {
@@ -135,36 +180,72 @@ public class GraphGenerator {
     }
 
     private void commit(final DB graph) {
-        if (null != transactionListener) {
-            transactionListener.run();
-        }
         graph.getMetrics().batchCommit.measure(() -> {
             graph.commitBatch();
         });
     }
 
-    private void createVertices(final DB graph) throws IOException {
+    private void createVertices(long start, long stop, final DB graph) {
+        long counter = 0;
         for (Map.Entry<QualifiedName, Long> e : vertexPartition.entrySet()) {
             QualifiedName label = e.getKey();
             PropertyModel props = model.getVertexPropertyModels().get(label);
             long nVertices = e.getValue();
-            logger.info("generating " + nVertices + " " + label + "...");
-            ProgressReporter progressReporter = new ProgressReporter("gen vertex " + label, nVertices, 102400L);
-            for (long i = 0; i < nVertices; i++) {
+            long partitionedStart = Math.max(0, start - counter);
+            long partitionedStop = Math.min(nVertices, stop - counter);
+            counter += nVertices;
+            if (partitionedStart >= partitionedStop) {
+                continue;
+            }
+            logger.info("generating [" + partitionedStart + ", " + partitionedStop + ") " + nVertices + " " + label);
+            ProgressReporter progressReporter = new ProgressReporter("gen vertex " + label, start, stop, 102400L);
+            for (long i = partitionedStart; i < partitionedStop; i++) {
                 createVertex(label, i, graph, props);
                 progressReporter.maybeReport(i);
             }
-            progressReporter.report(nVertices);
+            progressReporter.report(stop);
         }
     }
 
-    private void createEdges(final DB graph) {
+    private void createEdges(long start, long stop, final DB graph, final Random random) {
+        long counter = 0;
         for (Map.Entry<QualifiedName, EdgeModel> e : model.getEdgeModels().entrySet()) {
-            createEdges(e.getKey(), e.getValue(), graph);
+            QualifiedName edgeLabel = e.getKey();
+            EdgeModel edgeStats = e.getValue();
+            long nEdges = getEdgeCount(edgeStats);
+            long partitionedStart = Math.max(0, start - counter);
+            long partitionedStop = Math.min(nEdges, stop - counter);
+            counter += nEdges;
+            if (partitionedStart >= partitionedStop) {
+                continue;
+            }
+            logger.info("generating [" + partitionedStart + ", " + partitionedStop + ") " + nEdges + " " + edgeLabel);
+            createEdgesForEdgeModel(edgeLabel, edgeStats, graph, partitionedStart, partitionedStop, random);
         }
     }
 
-    private void createEdges(final QualifiedName edgeLabel, final EdgeModel edgeStats, final DB graph) {
+    private long countTotalEdges() {
+        long counter = 0;
+        for (Map.Entry<QualifiedName, EdgeModel> e : model.getEdgeModels().entrySet()) {
+            EdgeModel edgeStats = e.getValue();
+            long nEdges = getEdgeCount(edgeStats);
+            counter += nEdges;
+        }
+        return counter;
+    }
+
+    private long getEdgeCount(EdgeModel edgeStats) {
+        QualifiedName domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
+        QualifiedName rangeLabel = edgeStats.getRangeIncidence().getVertexLabel();
+        long domainSize = vertexPartition.get(domainLabel);
+        long rangeSize = vertexPartition.get(rangeLabel);
+        long outEdges = (long) (edgeStats.getDomainIncidence().getExistenceProbability() * domainSize);
+        long inEdges = (long) (edgeStats.getRangeIncidence().getExistenceProbability() * rangeSize);
+        return Math.max(outEdges, inEdges);
+    }
+
+    private void createEdgesForEdgeModel(final QualifiedName edgeLabel, final EdgeModel edgeStats,
+                                         final DB graph, final long start, final long stop, final Random random) {
 
         QualifiedName domainLabel = edgeStats.getDomainIncidence().getVertexLabel();
         QualifiedName rangeLabel = edgeStats.getRangeIncidence().getVertexLabel();
@@ -181,11 +262,9 @@ public class GraphGenerator {
 
         // subset of domain vertices and range vertices which will have at least one edge of the given label
         RandomSubset<Integer> domainSubset = createRandomSubset(
-            new DirectSet(domainBucketCount),
-            edgeStats.getDomainIncidence().getExistenceProbability());
+            new DirectSet(domainBucketCount), edgeStats.getDomainIncidence().getExistenceProbability(), random);
         RandomSubset<Integer> rangeSubset = createRandomSubset(
-            new DirectSet(rangeBucketCount),
-            edgeStats.getRangeIncidence().getExistenceProbability());
+            new DirectSet(rangeBucketCount), edgeStats.getRangeIncidence().getExistenceProbability(), random);
 
         // domain and range distributions
         DegreeDistribution.Sample domainSample
@@ -196,21 +275,15 @@ public class GraphGenerator {
         WeightedBuckets domainWeightedBuckets = new WeightedBuckets(domainSample, domainSubset.size());
         WeightedBuckets rangeWeightedBuckets = new WeightedBuckets(rangeSample, rangeSubset.size());
 
-        long totalEdge = (long) domainWeightedBuckets.getTotalWeight() * domainBucketWidth;
-
         String prefix = String.format("gen %s(%d/%d):%s:%s(%d/%d)",
             domainLabel, domainExistCount, domainSize,
             edgeLabel,
             rangeLabel, rangeExistCount, rangeSize
         );
 
-        ProgressReporter progressReporter = new ProgressReporter(prefix, totalEdge, 102400L);
+        ProgressReporter progressReporter = new ProgressReporter(prefix, start, stop, 102400L);
 
-
-        long edgeCount = 0;
-
-        while (edgeCount < totalEdge) {
-
+        for (long edgeCount = start; edgeCount < stop; edgeCount++) {
             // pick tail
             int domainBucket = domainWeightedBuckets.locate(random);
             int tbd = random.nextInt(domainBucketWidth);
@@ -221,14 +294,12 @@ public class GraphGenerator {
             int hbd = random.nextInt(domainBucketWidth);
             long headIndex = rangeSubset.get(rangeBucket) * rangeBucketWidth + hbd;
 
-
-            // System.out.println(String.format("domain sample index %d %d=%d*%d+%d", t, tailIndex, domainSubset.get(t), domainBucketWidth, d));
             createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
-            edgeCount++;
 
             progressReporter.maybeReport(edgeCount);
         }
-        progressReporter.report(totalEdge);
+
+        progressReporter.report(stop);
     }
 
     private void createVertex(final QualifiedName label, long id, final DB graph, final PropertyModel props) {
@@ -266,7 +337,8 @@ public class GraphGenerator {
         incrementBatchCounter(graph);
     }
 
-    private <T> RandomSubset<T> createRandomSubset(final IndexSet<T> base, final double probability) {
+    private <T> RandomSubset<T> createRandomSubset(final IndexSet<T> base,
+                                                   final double probability, final Random random) {
         int size = (int) (probability * base.size());
         return new RandomSubset<>(base, size, random);
     }
