@@ -1,0 +1,13 @@
+plugins {
+}
+
+group 'com.uber.ugb'
+
+dependencies {
+    compile project(':core')
+    compile(group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: '3.6.0', classifier: 'shaded') {
+        exclude group: 'io.netty'
+    }
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}

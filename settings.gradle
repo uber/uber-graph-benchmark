@@ -1,4 +1,5 @@
 rootProject.name = 'ugb'
 include 'core'
 include 'redis'
+include 'cassandra'
 

@@ -14,10 +14,12 @@ Getting Started
 
 3. Run benchmark on db
 
-  Here is an example of running RedisDB
   ```sh
   # generates and writes to redis db, then reads with subgraph queries
   ./gradlew execute -PmainArgs="-db com.uber.ugb.db.redis.RedisDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r"
+
+  # generates and writes to redis db, then reads with subgraph queries
+  ./gradlew execute -PmainArgs="-db com.uber.ugb.db.cassandra.CassandraDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r"
 
   # this generate vertices and edges and write to noop, used for measuring data gen performance
   ./gradlew execute -PmainArgs="-db com.uber.ugb.db.NoopDB -g benchdata/graphs/trips -b benchdata/workloads/workloada -w"

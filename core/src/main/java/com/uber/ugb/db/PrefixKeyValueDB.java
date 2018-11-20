@@ -8,7 +8,6 @@ import com.uber.ugb.storage.PrefixKeyValueStore;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -46,10 +45,10 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
             new QualifiedName(edgeQuerySpec.label), startVertexId, edgeQuerySpec.isBackward());
 
         List<Subgraph.Edge> edges = new ArrayList<>();
-        List<PrefixKeyValueStore.Row> rows = kvs.scan(prefix, edgeQuerySpec.limit);
-        for (PrefixKeyValueStore.Row row : rows) {
-            Object nextVertexId = conf.asObject(Arrays.copyOfRange(row.key, prefix.length, row.key.length));
-            Properties edgeProperties = (Properties) conf.asObject(row.value);
+        List<PrefixKeyValueStore.PrefixQueriedRow> prefixQueriedRows = kvs.scan(prefix, edgeQuerySpec.limit);
+        for (PrefixKeyValueStore.PrefixQueriedRow prefixQueriedRow : prefixQueriedRows) {
+            Object nextVertexId = conf.asObject(prefixQueriedRow.keySuffix);
+            Properties edgeProperties = (Properties) conf.asObject(prefixQueriedRow.value);
             Subgraph.Edge edge = new Subgraph.Edge(startVertexId, nextVertexId, edgeProperties);
             edges.add(edge);
         }
@@ -69,8 +68,12 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
                             QualifiedName inVertexLabel, Object inVertexId,
                             Object... keyValues) {
         byte[] edgePropertiesValue = propertiesToBytes(keyValues);
-        kvs.put(genEdgeKey(edgeLabel, outVertexId, inVertexId, false), edgePropertiesValue);
-        kvs.put(genEdgeKey(edgeLabel, outVertexId, inVertexId, true), edgePropertiesValue);
+        kvs.put(genEdgeKeyPrefix(edgeLabel, outVertexId, inVertexId, false),
+            genEdgeKeySuffix(outVertexId, inVertexId, false),
+            edgePropertiesValue);
+        kvs.put(genEdgeKeyPrefix(edgeLabel, outVertexId, inVertexId, true),
+            genEdgeKeySuffix(outVertexId, inVertexId, true),
+            edgePropertiesValue);
         return Status.OK;
     }
 
@@ -82,7 +85,8 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
         return out.toByteArray();
     }
 
-    protected byte[] genEdgeKey(QualifiedName edgeLabel, Object outVertexId, Object inVertexId, boolean isBackward) {
+    protected byte[] genEdgeKeyPrefix(QualifiedName edgeLabel,
+                                      Object outVertexId, Object inVertexId, boolean isBackward) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.write(edgeLabel.toString().getBytes());
         if (isBackward) {
@@ -95,11 +99,6 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
             out.write(outVertexId.toString().getBytes());
         }
         out.write(Separator);
-        if (isBackward) {
-            out.write(conf.asByteArray(outVertexId));
-        } else {
-            out.write(conf.asByteArray(inVertexId));
-        }
         return out.toByteArray();
     }
 
@@ -112,6 +111,16 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
         out.write(Separator);
         out.write(startVertexId.toString().getBytes());
         out.write(Separator);
+        return out.toByteArray();
+    }
+
+    protected byte[] genEdgeKeySuffix(Object outVertexId, Object inVertexId, boolean isBackward) {
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        if (isBackward) {
+            out.write(conf.asByteArray(outVertexId));
+        } else {
+            out.write(conf.asByteArray(inVertexId));
+        }
         return out.toByteArray();
     }
 

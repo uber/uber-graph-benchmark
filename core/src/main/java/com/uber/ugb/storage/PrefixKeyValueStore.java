@@ -4,14 +4,16 @@ import java.util.List;
 
 public interface PrefixKeyValueStore extends KeyValueStore {
 
-    List<Row> scan(byte[] prefix, int limit);
+    List<PrefixQueriedRow> scan(byte[] prefix, int limit);
 
-    class Row {
-        public final byte[] key;
+    void put(byte[] keyPrefix, byte[] keySuffix, byte[] value);
+
+    class PrefixQueriedRow {
+        public final byte[] keySuffix;
         public final byte[] value;
 
-        public Row(byte[] key, byte[] value) {
-            this.key = key;
+        public PrefixQueriedRow(byte[] keySuffix, byte[] value) {
+            this.keySuffix = keySuffix;
             this.value = value;
         }
     }

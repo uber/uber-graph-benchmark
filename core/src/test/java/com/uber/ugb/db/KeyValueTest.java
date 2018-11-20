@@ -43,7 +43,7 @@ public class KeyValueTest {
         Long inVertexId = 100L;
         String edgeLabel = "some_edge";
 
-        byte[] key = db.genEdgeKey(new QualifiedName(edgeLabel), startVertexId, inVertexId, false);
+        byte[] key = db.genEdgeKeyPrefix(new QualifiedName(edgeLabel), startVertexId, inVertexId, false);
         byte[] prefix = db.genEdgeKeyPrefix(new QualifiedName(edgeLabel), startVertexId, false);
 
         for (int i = 0; i < prefix.length; i++) {
