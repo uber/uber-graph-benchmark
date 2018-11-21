@@ -67,6 +67,12 @@ public class CassandraDB extends PrefixKeyValueDB {
             Cluster.Builder builder = Cluster.builder();
             builder.addContactPoints(contactPoints).withPort(port);
 
+            String username = properties.getProperty("cassandra.username", "");
+            String password = properties.getProperty("cassandra.password", "");
+            if (username != "" && password != "") {
+                builder.withCredentials(username, password);
+            }
+
             cluster = builder.build();
 
             Metadata metadata = cluster.getMetadata();

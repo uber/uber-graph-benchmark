@@ -8,9 +8,9 @@ import com.uber.ugb.db.ParallelWriteDBWrapper;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.queries.QueriesSpec;
 import com.uber.ugb.schema.QualifiedName;
+import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -37,7 +37,7 @@ public class Benchmark {
 
     public static void main(String[] args) {
         // create the command line parser
-        CommandLineParser parser = new DefaultParser();
+        CommandLineParser parser = new BasicParser();
 
         // create the Options
         Options options = new Options();
