@@ -21,7 +21,7 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
         conf.registerClass(Properties.class);
     }
 
-    private PrefixKeyValueStore kvs;
+    private transient PrefixKeyValueStore kvs;
 
     public PrefixKeyValueDB() {
     }
@@ -79,38 +79,36 @@ public class PrefixKeyValueDB extends AbstractSubgraphDB {
 
     protected byte[] genVertexKey(QualifiedName label, Object id) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.write(label.toString().getBytes());
-        out.write(Separator);
         out.write(id.toString().getBytes());
+        out.write(Separator);
+        out.write(label.toString().getBytes());
         return out.toByteArray();
     }
 
     protected byte[] genEdgeKeyPrefix(QualifiedName edgeLabel,
                                       Object outVertexId, Object inVertexId, boolean isBackward) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.write(edgeLabel.toString().getBytes());
-        if (isBackward) {
-            out.write(REVERSE_SUFFIX);
-        }
-        out.write(Separator);
         if (isBackward) {
             out.write(inVertexId.toString().getBytes());
         } else {
             out.write(outVertexId.toString().getBytes());
         }
         out.write(Separator);
+        out.write(edgeLabel.toString().getBytes());
+        if (isBackward) {
+            out.write(REVERSE_SUFFIX);
+        }
         return out.toByteArray();
     }
 
     protected byte[] genEdgeKeyPrefix(QualifiedName edgeLabel, Object startVertexId, boolean isBackward) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.write(startVertexId.toString().getBytes());
+        out.write(Separator);
         out.write(edgeLabel.toString().getBytes());
         if (isBackward) {
             out.write(REVERSE_SUFFIX);
         }
-        out.write(Separator);
-        out.write(startVertexId.toString().getBytes());
-        out.write(Separator);
         return out.toByteArray();
     }
 

@@ -1,5 +1,6 @@
 package com.uber.ugb;
 
+import com.uber.ugb.db.DBException;
 import com.uber.ugb.db.GremlinDB;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.schema.InvalidSchemaException;
@@ -46,7 +47,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
         GraphGenerator gen = newGraphGenerator();
-        gen.generateTo(gremlinDB, totalVertices);
+        gen.generateTo(gremlinDB, totalVertices, 2, 1);
 
         long found = count(graph.traversal().V());
 
@@ -95,7 +96,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
         GraphGenerator gen = newGraphGenerator();
-        gen.generateTo(gremlinDB, totalVertices);
+        gen.generateTo(gremlinDB, totalVertices, 4, 2);
 
         writeVerticesTo(graph, new File("/tmp/vertices.csv"));
         writeEdgesTo(graph, new File("/tmp/edges.csv"));
@@ -103,7 +104,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
     }
 
     private long generateGraphAndCountEdges(final int totalVertices, final long randomSeed)
-        throws IOException, InvalidSchemaException {
+        throws IOException, InvalidSchemaException, DBException {
         Graph graph = SchemaUtils.createTinkerGraph();
         GremlinDB gremlinDB = new GremlinDB();
         gremlinDB.setGraph(graph);
@@ -111,7 +112,7 @@ public class GraphGeneratorTest extends GraphGenTestBase {
         if (0 != randomSeed) {
             gen.setRandomSeed(randomSeed);
         }
-        gen.generateTo(gremlinDB, totalVertices);
+        gen.generateTo(gremlinDB, totalVertices, 8, 4);
         return countEdges(graph);
     }
 

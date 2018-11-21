@@ -1,9 +1,12 @@
 package com.uber.ugb.measurement;
 
+import com.google.common.base.Preconditions;
+
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class LatencyHistogram implements Measurement {
+public class LatencyHistogram implements Serializable {
     private final long[] usBuckets;
     private final long[] msBuckets;
     private final long[] secBuckets;
@@ -27,7 +30,30 @@ public class LatencyHistogram implements Measurement {
         this.std = new StreamingStandardDeviation();
     }
 
-    @Override
+    public LatencyHistogram merge(LatencyHistogram that) {
+        Preconditions.checkArgument(this.name.equals(that.name));
+        Preconditions.checkArgument(this.usBuckets.length == that.usBuckets.length);
+        Preconditions.checkArgument(this.msBuckets.length == that.msBuckets.length);
+        Preconditions.checkArgument(this.secBuckets.length == that.secBuckets.length);
+        for (int i = 0; i < this.usBuckets.length; i++) {
+            this.usBuckets[i] += that.usBuckets[i];
+        }
+        for (int i = 0; i < this.msBuckets.length; i++) {
+            this.msBuckets[i] += that.msBuckets[i];
+        }
+        for (int i = 0; i < this.secBuckets.length; i++) {
+            this.secBuckets[i] += that.secBuckets[i];
+        }
+        this.overflowCount += that.overflowCount;
+        this.minNs = this.minNs == -1 ? that.minNs : that.minNs == -1 ? this.minNs : Math.min(this.minNs, that.minNs);
+        this.maxNs = Math.max(this.maxNs, that.maxNs);
+        this.operations.addAndGet(that.operations.get());
+        this.totalLatencyNs.addAndGet(that.totalLatencyNs.get());
+        this.std = this.std.merge(that.std);
+
+        return this;
+    }
+
     public boolean hasData() {
         return this.operations.get() > 0;
     }
@@ -37,7 +63,6 @@ public class LatencyHistogram implements Measurement {
      *
      * @param latencyNs
      */
-    @Override
     public void measure(long latencyNs) {
         long usBucket = latencyNs / 1000;
         if (usBucket < usBuckets.length) {
@@ -69,7 +94,6 @@ public class LatencyHistogram implements Measurement {
         std.put(latencyNs);
     }
 
-    @Override
     public void measure(Runnable runnable) {
         long start = System.nanoTime();
         try {
@@ -79,7 +103,6 @@ public class LatencyHistogram implements Measurement {
         }
     }
 
-    @Override
     public void printout(MetricsOutput out) throws IOException {
         double operationCount = (double) operations.get();
         double meanNs = totalLatencyNs.get() / operationCount;

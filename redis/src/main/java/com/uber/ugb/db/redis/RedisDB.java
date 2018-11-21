@@ -10,7 +10,7 @@ import java.util.Properties;
 
 public class RedisDB extends KeyValueDB {
 
-    RedisStore redisStore;
+    transient RedisStore redisStore;
 
     public RedisDB() {
         super();

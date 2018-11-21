@@ -1,11 +1,21 @@
 package com.uber.ugb.db.cassandra;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ProtocolOptions;
+import com.datastax.driver.core.ProtocolVersion;
+import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.LatencyAwarePolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.uber.ugb.db.PrefixKeyValueDB;
 import com.uber.ugb.storage.PrefixKeyValueStore;
 import org.slf4j.Logger;
@@ -15,12 +25,15 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class CassandraDB extends PrefixKeyValueDB {
 
     private static Logger logger = LoggerFactory.getLogger(CassandraDB.class);
+    private static ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_ONE;
 
-    CassandraStore cassandraStore;
+    transient CassandraStore cassandraStore;
 
     public CassandraDB() {
         super();
@@ -51,13 +64,19 @@ public class CassandraDB extends PrefixKeyValueDB {
     }
 
     public static class CassandraStore implements PrefixKeyValueStore {
+
+        // CQL to PreparedStatement cache
+        private final ConcurrentMap<String, PreparedStatement> cachedStatements = new ConcurrentHashMap<>();
+
         private Cluster cluster;
         private Session session;
+        private String dataCenter;
         private String keyspace;
         private String vertexTableName;
         private String edgeTableName;
 
         public CassandraStore(Properties properties) {
+            dataCenter = properties.getProperty("cassandra.dc", "");
             keyspace = properties.getProperty("cassandra.keyspace", "ugb");
             vertexTableName = properties.getProperty("cassandra.vertexTableName", "vertex");
             edgeTableName = properties.getProperty("cassandra.edgeTableName", "edge");
@@ -72,6 +91,28 @@ public class CassandraDB extends PrefixKeyValueDB {
             if (username != "" && password != "") {
                 builder.withCredentials(username, password);
             }
+            if (dataCenter.length() != 0) {
+                builder.withLoadBalancingPolicy(
+                    LatencyAwarePolicy.builder(
+                        new TokenAwarePolicy(
+                            DCAwareRoundRobinPolicy
+                                .builder()
+                                .withLocalDc(dataCenter)
+                                .build())).build());
+            }
+            builder.withQueryOptions(new QueryOptions().setConsistencyLevel(consistencyLevel))
+                .withCompression(ProtocolOptions.Compression.LZ4)
+                .withProtocolVersion(ProtocolVersion.V4);
+
+            // pooling options
+            PoolingOptions poolingOptions = new PoolingOptions();
+            poolingOptions
+                .setPoolTimeoutMillis(60000)
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, 2)
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, 4)
+                .setCoreConnectionsPerHost(HostDistance.REMOTE, 2)
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, 4);
+            builder.withPoolingOptions(poolingOptions);
 
             cluster = builder.build();
 
@@ -124,8 +165,10 @@ public class CassandraDB extends PrefixKeyValueDB {
             List<PrefixQueriedRow> rows = new ArrayList<>();
 
             String cql = String.format("SELECT id2, value FROM %s.%s WHERE id1 = ?", keyspace, edgeTableName);
-
-            ResultSet resultSet = session.execute(cql, ByteBuffer.wrap(keyPrefix));
+            PreparedStatement preparedStatement = cachedStatements.computeIfAbsent(cql, session::prepare);
+            preparedStatement.setConsistencyLevel(consistencyLevel);
+            preparedStatement.setIdempotent(true);
+            ResultSet resultSet = session.execute(preparedStatement.bind(ByteBuffer.wrap(keyPrefix)));
 
             resultSet.forEach(row -> {
                 ByteBuffer byteBuffer1 = row.getBytes(0);
@@ -147,8 +190,11 @@ public class CassandraDB extends PrefixKeyValueDB {
         public void put(byte[] keyPrefix, byte[] keySuffix, byte[] value) {
 
             String cql = String.format("INSERT INTO %s.%s(id1,id2,value) VALUES(?,?,?)", keyspace, edgeTableName);
-
-            session.execute(cql, ByteBuffer.wrap(keyPrefix), ByteBuffer.wrap(keySuffix), ByteBuffer.wrap(value));
+            PreparedStatement preparedStatement = cachedStatements.computeIfAbsent(cql, session::prepare);
+            preparedStatement.setConsistencyLevel(consistencyLevel);
+            preparedStatement.setIdempotent(true);
+            session.execute(preparedStatement.bind(
+                ByteBuffer.wrap(keyPrefix), ByteBuffer.wrap(keySuffix), ByteBuffer.wrap(value)));
 
         }
 
@@ -156,8 +202,10 @@ public class CassandraDB extends PrefixKeyValueDB {
         public byte[] get(byte[] key) {
 
             String cql = String.format("SELECT value FROM %s.%s WHERE id = ?", keyspace, vertexTableName);
-
-            ResultSet resultSet = session.execute(cql, ByteBuffer.wrap(key));
+            PreparedStatement preparedStatement = cachedStatements.computeIfAbsent(cql, session::prepare);
+            preparedStatement.setConsistencyLevel(consistencyLevel);
+            preparedStatement.setIdempotent(true);
+            ResultSet resultSet = session.execute(preparedStatement.bind(ByteBuffer.wrap(key)));
 
             Row row = resultSet.one();
             if (row == null) {
@@ -174,7 +222,10 @@ public class CassandraDB extends PrefixKeyValueDB {
         @Override
         public void put(byte[] key, byte[] value) {
             String cql = String.format("INSERT INTO %s.%s(id,value) VALUES(?,?)", keyspace, vertexTableName);
-            session.execute(cql, ByteBuffer.wrap(key), ByteBuffer.wrap(value));
+            PreparedStatement preparedStatement = cachedStatements.computeIfAbsent(cql, session::prepare);
+            preparedStatement.setConsistencyLevel(consistencyLevel);
+            preparedStatement.setIdempotent(true);
+            session.execute(preparedStatement.bind(ByteBuffer.wrap(key), ByteBuffer.wrap(value)));
         }
 
     }

@@ -1,9 +1,13 @@
 graph=trips
 
-#write.vertex.count=2147483648
-#write.vertex.count=214748364
+## writes
+graph.partition.count=16
 write.vertex.count=1000000
 write.seed=12345
 
+# write threads, per vm in spark
+write.thread.count=16
+
+## Reads
 read.thread.count=64
 read.operation.count=100000

@@ -29,7 +29,7 @@ public class ParallelWriteDBWrapper extends DB {
     public ParallelWriteDBWrapper(DB db, int concurrency) {
         this.db = db;
         this.concurrency = concurrency;
-        this.todos = new ArrayBlockingQueue(concurrency * 16);
+        this.todos = new ArrayBlockingQueue(concurrency);
         this.todoCounter = new AtomicLong();
         this.runnableCounter = new AtomicLong();
         this.isClosing = new AtomicBoolean();
@@ -58,6 +58,7 @@ public class ParallelWriteDBWrapper extends DB {
 
     @Override
     public void init() throws DBException {
+        this.db.setMetrics(new Metrics());
         this.db.init();
     }
 

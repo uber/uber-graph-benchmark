@@ -1,8 +1,9 @@
 package com.uber.ugb.model.generator;
 
+import java.io.Serializable;
 import java.util.Random;
 
-public abstract class Generator<V> {
+public abstract class Generator<V> implements Serializable {
 
     protected Random random = new Random();
 

@@ -9,16 +9,17 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Metrics {
-    public Measurement writeVertex;
-    public Measurement writeEdge;
-    public Measurement batchCommit;
-    public Measurement readVertex;
-    public Measurement readEdge;
-    public Measurement subgraph;
+public class Metrics implements Serializable {
+    public LatencyHistogram writeVertex;
+    public LatencyHistogram writeEdge;
+    public LatencyHistogram batchCommit;
+    public LatencyHistogram readVertex;
+    public LatencyHistogram readEdge;
+    public LatencyHistogram subgraph;
     public AtomicLong subgraphVertexCount;
     public AtomicLong subgraphEdgeCount;
     public AtomicLong subgraphWithEdgesCount;
@@ -56,10 +57,24 @@ public class Metrics {
         writer.close();
     }
 
-    public void collectMetrics(JsonMetricsOutput jsonOutput, Measurement m) throws IOException {
+    public void collectMetrics(JsonMetricsOutput jsonOutput, LatencyHistogram m) throws IOException {
         if (m.hasData()) {
             m.printout(jsonOutput);
         }
     }
 
+    public Metrics merge(Metrics that) {
+
+        this.writeVertex.merge(that.writeVertex);
+        this.writeEdge.merge(that.writeEdge);
+        this.batchCommit.merge(that.batchCommit);
+        this.readVertex.merge(that.readVertex);
+        this.readEdge.merge(that.readEdge);
+        this.subgraph.merge(that.subgraph);
+        this.subgraphVertexCount.addAndGet(that.subgraphVertexCount.get());
+        this.subgraphEdgeCount.addAndGet(that.subgraphEdgeCount.get());
+        this.subgraphWithEdgesCount.addAndGet(that.subgraphWithEdgesCount.get());
+
+        return this;
+    }
 }

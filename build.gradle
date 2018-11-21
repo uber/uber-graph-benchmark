@@ -57,8 +57,8 @@ shadowJar {
 
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
 
-    // optionally rename some java librarires
-    // relocate 'com.google', 'uber.com.google'
+    // rename some java librarires
+    relocate 'com.google', 'uber.com.google'
 
     manifest {
         attributes 'Built-Date': (new SimpleDateFormat("yyyy/MM/dd")).format(new Date())

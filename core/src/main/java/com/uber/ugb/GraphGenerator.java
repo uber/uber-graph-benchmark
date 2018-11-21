@@ -2,6 +2,9 @@ package com.uber.ugb;
 
 import com.google.common.base.Preconditions;
 import com.uber.ugb.db.DB;
+import com.uber.ugb.db.DBException;
+import com.uber.ugb.db.ParallelWriteDBWrapper;
+import com.uber.ugb.measurement.Metrics;
 import com.uber.ugb.model.EdgeModel;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.model.PropertyModel;
@@ -10,9 +13,11 @@ import com.uber.ugb.model.distro.DegreeDistribution;
 import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
 import com.uber.ugb.util.RandomPermutation;
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import scala.Tuple2;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -31,12 +36,6 @@ import java.util.logging.Logger;
  */
 public class GraphGenerator implements Serializable {
 
-    // an internal version number which tracks changes affecting graph generation.
-    // Whenever there is a possibility that a code change will result in a different graph
-    // (despite identical model, size, and seed value), this version should be changed so as to avoid
-    // two distinct generated graphs sharing a name.
-    static final String VERSION = "v1";
-    private static final int PARTITION_COUNT = 64;
     private static Logger logger = Logger.getLogger(GraphGenerator.class.getName());
     private final GraphModel model;
     // used in random permutations and degree distributions
@@ -93,31 +92,44 @@ public class GraphGenerator implements Serializable {
      * @param graph         the property graph to which generated elements are to be added
      * @param totalVertices the size of the generated graph, in terms of vertices
      */
-    public synchronized void generateTo(final DB graph, final long totalVertices) {
+    public synchronized Metrics generateTo(final DB graph, final long totalVertices, final int writeConcurrency,
+                                           final int graphPartitionCount) throws DBException {
         Preconditions.checkNotNull(graph);
         Preconditions.checkArgument(totalVertices > 0);
+        Preconditions.checkArgument(writeConcurrency > 0);
+        Preconditions.checkArgument(graphPartitionCount > 0);
 
-        graph.setVocabulary(getModel().getSchemaVocabulary());
+        ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(graph, writeConcurrency);
+        pdb.init();
+        pdb.startup();
+
+
         vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
 
-        long vertexPartitionSize = Math.floorDiv(totalVertices, PARTITION_COUNT) + 1;
+        long vertexPartitionSize = Math.floorDiv(totalVertices, graphPartitionCount) + 1;
         long totalEdges = countTotalEdges();
-        long edgePartitionSize = Math.floorDiv(totalEdges, PARTITION_COUNT) + 1;
+        long edgePartitionSize = Math.floorDiv(totalEdges, graphPartitionCount) + 1;
 
         long time = timeTask(() -> {
-            for (long i = 0; i < PARTITION_COUNT; i++) {
+            for (long i = 0; i < graphPartitionCount; i++) {
                 long start = i * vertexPartitionSize;
                 long stop = Math.min(i * vertexPartitionSize + vertexPartitionSize, totalVertices);
-                createVertices(start, stop, graph);
+                createVertices(start, stop, pdb);
             }
-            for (long i = 0; i < PARTITION_COUNT; i++) {
+            for (long i = 0; i < graphPartitionCount; i++) {
                 long start = i * edgePartitionSize;
                 long stop = Math.min(i * edgePartitionSize + edgePartitionSize, totalEdges);
-                createEdges(start, stop, graph, new Random(randomSeed + i));
+                createEdges(start, stop, pdb, new Random(randomSeed + i));
             }
-            commit(graph);
+            commit(pdb);
         });
         logger.info("generated graph of " + totalVertices + " vertices in " + time + "ms");
+
+        pdb.shutdown();
+
+        pdb.cleanup();
+
+        return pdb.getMetrics();
     }
 
     /**
@@ -126,41 +138,74 @@ public class GraphGenerator implements Serializable {
      * @param graph         the property graph to which generated elements are to be added
      * @param totalVertices the size of the generated graph, in terms of vertices
      */
-    public synchronized void generateTo(JavaSparkContext javaSparkContext,
-                                        final DB graph, final long totalVertices) {
+    public synchronized Metrics generateTo(SparkConf sparkConf,
+                                           final DB graph, final long totalVertices,
+                                           final int writeConcurrency, final int graphPartitionCount) {
         Preconditions.checkNotNull(graph);
         Preconditions.checkArgument(totalVertices > 0);
+        Preconditions.checkArgument(writeConcurrency > 0);
+        Preconditions.checkArgument(graphPartitionCount > 0);
 
-        graph.setVocabulary(getModel().getSchemaVocabulary());
         vertexPartition = model.getVertexPartitioner().getPartitionSizes(totalVertices);
 
-        long vertexPartitionSize = Math.floorDiv(totalVertices, PARTITION_COUNT) + 1;
+        long vertexPartitionSize = Math.floorDiv(totalVertices, graphPartitionCount) + 1;
         long totalEdges = countTotalEdges();
-        long edgePartitionSize = Math.floorDiv(totalEdges, PARTITION_COUNT) + 1;
+        long edgePartitionSize = Math.floorDiv(totalEdges, graphPartitionCount) + 1;
 
         List<Integer> parts = new ArrayList<>();
-        for (int i = 0; i < PARTITION_COUNT; i++) {
+        for (int i = 0; i < graphPartitionCount; i++) {
             parts.add(i);
         }
-        JavaRDD<Integer> range = javaSparkContext.parallelize(parts);
 
-        range = range.map((Function<Integer, Integer>) i -> {
-            long start = i * vertexPartitionSize;
-            long stop = Math.min(i * vertexPartitionSize + vertexPartitionSize, totalVertices);
-            createVertices(start, stop, graph);
-            return i;
-        });
+        JavaSparkContext javaSparkContext = new JavaSparkContext(sparkConf);
 
-        range.count();
+        System.out.println("start generating " + totalVertices + " vertices by partition size " + vertexPartitionSize);
+        System.out.println("start generating " + totalEdges + " edges by partition size " + edgePartitionSize);
 
-        range.map((Function<Integer, Integer>) i -> {
-            long start = i * edgePartitionSize;
-            long stop = Math.min(i * edgePartitionSize + edgePartitionSize, totalEdges);
-            createEdges(start, stop, graph, new Random(randomSeed + i));
-            return i;
-        });
+        JavaRDD<Metrics> genVertex = javaSparkContext.parallelize(parts)
+            .repartition(graphPartitionCount)
+            .map((Function<Integer, Metrics>) i -> {
 
-        commit(graph);
+                ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(graph, writeConcurrency);
+                pdb.init();
+                pdb.startup();
+
+                long start = i * vertexPartitionSize;
+                long stop = Math.min(i * vertexPartitionSize + vertexPartitionSize, totalVertices);
+                createVertices(start, stop, pdb);
+                commit(pdb);
+
+                pdb.shutdown();
+                Metrics currentMetrics = pdb.getMetrics();
+                pdb.cleanup();
+                return currentMetrics;
+            });
+
+        Metrics finalMetrics = genVertex
+            .zipWithIndex()
+            .repartition(graphPartitionCount)
+            .map((Function<Tuple2<Metrics, Long>, Metrics>) t -> {
+
+                ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(graph, writeConcurrency);
+                pdb.init();
+                pdb.startup();
+
+                Metrics prevMetrics = t._1;
+                long i = t._2;
+                long start = i * edgePartitionSize;
+                long stop = Math.min(i * edgePartitionSize + edgePartitionSize, totalEdges);
+                createEdges(start, stop, pdb, new Random(randomSeed + i));
+                commit(pdb);
+                pdb.shutdown();
+                Metrics currentMetrics = pdb.getMetrics();
+                pdb.cleanup();
+
+                return prevMetrics.merge(currentMetrics);
+            }).reduce((m1, m2) -> m1.merge(m2));
+
+        javaSparkContext.close();
+
+        return finalMetrics;
 
     }
 
@@ -191,8 +236,8 @@ public class GraphGenerator implements Serializable {
             QualifiedName label = e.getKey();
             PropertyModel props = model.getVertexPropertyModels().get(label);
             long nVertices = e.getValue();
-            long partitionedStart = Math.max(0, start - counter);
-            long partitionedStop = Math.min(nVertices, stop - counter);
+            long partitionedStart = Math.max(counter, start);
+            long partitionedStop = Math.min(counter + nVertices, stop);
             counter += nVertices;
             if (partitionedStart >= partitionedStop) {
                 continue;
@@ -213,8 +258,8 @@ public class GraphGenerator implements Serializable {
             QualifiedName edgeLabel = e.getKey();
             EdgeModel edgeStats = e.getValue();
             long nEdges = getEdgeCount(edgeStats);
-            long partitionedStart = Math.max(0, start - counter);
-            long partitionedStop = Math.min(nEdges, stop - counter);
+            long partitionedStart = Math.max(counter, start);
+            long partitionedStop = Math.min(counter + nEdges, stop);
             counter += nEdges;
             if (partitionedStart >= partitionedStop) {
                 continue;

@@ -1,11 +1,13 @@
 package com.uber.ugb.measurement;
 
-public class StreamingStandardDeviation {
+import java.io.Serializable;
+
+public class StreamingStandardDeviation implements Serializable {
 
     // this piece of code is adapted from
     // http://obscuredclarity.blogspot.com/2012/08/running-average-and-running-standard.html
 
-    private int count = 0;
+    private long count = 0;
     private double average = 0.0;
     private double pwrSumAvg = 0.0;
 
@@ -20,6 +22,16 @@ public class StreamingStandardDeviation {
         average += (value - average) / count;
         pwrSumAvg += (value * value - pwrSumAvg) / count;
 
+    }
+
+    public StreamingStandardDeviation merge(StreamingStandardDeviation that) {
+        long total = this.count + that.count;
+        if (total > 0) {
+            this.average = (this.average * this.count + that.average * that.count) / total;
+            this.pwrSumAvg = (this.pwrSumAvg * this.count + that.pwrSumAvg * that.count) / total;
+        }
+        this.count = total;
+        return this;
     }
 
     public double getAverage() {

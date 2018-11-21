@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.uber.ugb.db.DB;
 import com.uber.ugb.db.NoopDB;
-import com.uber.ugb.db.ParallelWriteDBWrapper;
+import com.uber.ugb.measurement.Metrics;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.queries.QueriesSpec;
 import com.uber.ugb.schema.QualifiedName;
@@ -13,7 +13,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,6 +27,7 @@ import java.util.logging.Logger;
 
 public class Benchmark {
 
+    public static final String GRAPH_PARTITION_COUNT_PROPERTY = "graph.partition.count";
     public static final String WRITE_VERTEX_COUNT_PROPERTY = "write.vertex.count";
     public static final String WRITE_SEED_PROPERTY = "write.seed";
     public static final String WRITE_THREAD_COUNT_PROPERTY = "write.thread.count";
@@ -73,6 +73,7 @@ public class Benchmark {
 
             Properties prop = collectProperties(workloadFile);
 
+            int graphPartitionCount = Integer.valueOf(prop.getProperty(GRAPH_PARTITION_COUNT_PROPERTY, "16"));
             long operationCount = Long.valueOf(prop.getProperty(READ_OPERATION_COUNT_PROPERTY, "1"));
             int writeConcurrency = Integer.valueOf(prop.getProperty(WRITE_THREAD_COUNT_PROPERTY, "16"));
             int readConcurrency = Integer.valueOf(prop.getProperty(READ_THREAD_COUNT_PROPERTY, "16"));
@@ -98,29 +99,26 @@ public class Benchmark {
             // set the properties
             db.setProperties(prop);
             db.setVocabulary(model.getSchemaVocabulary());
-            // init the db instance
-            db.init();
+
+            Metrics metrics = new Metrics();
 
             try {
 
                 if (hasWrite) {
 
-                    ParallelWriteDBWrapper pdb = new ParallelWriteDBWrapper(db, writeConcurrency);
-                    pdb.startup();
-
                     if (!isSpark) {
 
-                        gen.generateTo(pdb, totalVertices);
+                        Metrics m = gen.generateTo(db, totalVertices, writeConcurrency, graphPartitionCount);
+                        metrics.merge(m);
 
                     } else {
 
                         SparkConf sparkConf = new SparkConf(true).setAppName("UberGraphBenchmark Generator");
-                        JavaSparkContext javaSparkContext = new JavaSparkContext(sparkConf);
-                        gen.generateTo(javaSparkContext, pdb, totalVertices);
+                        Metrics readMetrics =
+                            gen.generateTo(sparkConf, db, totalVertices, writeConcurrency, graphPartitionCount);
+                        metrics.merge(readMetrics);
 
                     }
-
-                    pdb.shutdown();
 
                     logger.info("write done");
 
@@ -130,16 +128,20 @@ public class Benchmark {
 
                     String queriesPath = graphDir + "/queries.yaml";
 
-                    benchmarkQueries(gen, seed, totalVertices, db, queriesPath, operationCount, readConcurrency);
+                    db.init();
+                    db.setMetrics(new Metrics());
+                    Metrics readMetrics =
+                        benchmarkQueries(gen, seed, totalVertices, db, queriesPath, operationCount, readConcurrency);
+                    metrics.merge(readMetrics);
+                    db.cleanup();
 
                     logger.info("read done");
 
                 }
+
             } finally {
 
-                db.getMetrics().printOut(System.out);
-
-                db.cleanup();
+                metrics.printOut(System.out);
 
             }
 
@@ -152,8 +154,8 @@ public class Benchmark {
         System.exit(0);
     }
 
-    private static void benchmarkQueries(GraphGenerator gen, int seed, long totalVertices, DB db, String queriesPath,
-                                         long operationCount, int concurrency) throws Exception {
+    private static Metrics benchmarkQueries(GraphGenerator gen, int seed, long totalVertices, DB db, String queriesPath,
+                                            long operationCount, int concurrency) throws Exception {
 
         Path path = Paths.get(queriesPath);
         InputStream yamlInput = new FileInputStream(new File(path.toString()));
@@ -171,6 +173,8 @@ public class Benchmark {
             graphScraper.scrape(db, seed, startVertexSetSize, query, operationCount, concurrency);
         }
 
+        return db.getMetrics();
+
     }
 
     private static Properties readProperties(String fileName) {
@@ -182,6 +186,7 @@ public class Benchmark {
             input = new FileInputStream(fileName);
 
             // load a properties file
+            logger.info("Reading from " + fileName);
             prop.load(input);
 
             Enumeration<?> e = prop.propertyNames();
@@ -216,9 +221,7 @@ public class Benchmark {
         File envPropFile = new File(new File(workloadFilePath).getParentFile(), "env.properties");
         if (envPropFile.exists()) {
             Properties envProp = readProperties(envPropFile.getAbsolutePath());
-            for (String k : envProp.stringPropertyNames()) {
-                prop.setProperty(k, envProp.getProperty(k));
-            }
+            prop.putAll(envProp);
         }
         Map<String, String> env = System.getenv();
         prop.putAll(env);
