@@ -3,7 +3,8 @@ queries:
   type: k-hop
   startVertexLabel: users.User
   # if supported, the native query will be used instead of steps
-  gremlinQuery: >
+  queryType: gremlin
+  queryText: >
     g.V(x)
     .outE('trips.requested').order().by('ts', decr).limit(10).subgraph('s').outV()
     .inE('trips.droveFor').inV()

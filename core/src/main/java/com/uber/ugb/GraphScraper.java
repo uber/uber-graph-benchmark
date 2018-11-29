@@ -1,14 +1,12 @@
 package com.uber.ugb;
 
 import com.uber.ugb.db.DB;
-import com.uber.ugb.db.QueryCapability;
+import com.uber.ugb.db.QueryResult;
 import com.uber.ugb.db.Subgraph;
 import com.uber.ugb.queries.QueriesSpec;
 import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import javax.script.ScriptException;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +48,9 @@ public class GraphScraper {
 
         AtomicLong queryCount = new AtomicLong();
 
+        String queryText = db.supportedQueryType().equals(query.queryType)
+            ? query.queryText : null;
+
         for (int i = 0; i < concurrency; i++) {
             executorService.execute(() -> {
                 while (readCounter.get() < operationCount && !hasException.get()) {
@@ -64,25 +65,16 @@ public class GraphScraper {
                     Subgraph subgraph = new Subgraph(task.vid);
                     try {
                         db.getMetrics().subgraph.measure(() -> {
-                            int vertexCount = 0, edgeCount = 0;
-                            if (db instanceof QueryCapability.SupportGremlin) {
-                                try {
-                                    TinkerGraph g2 = (TinkerGraph) ((QueryCapability.SupportGremlin) db).queryByGremlin(
-                                        query.gremlinQuery, "x", subgraph.startVertexId);
-                                    vertexCount = g2.traversal().V().count().next().intValue();
-                                    edgeCount = g2.traversal().E().count().next().intValue();
-                                } catch (ScriptException e) {
-                                    e.printStackTrace();
-                                    throw new RuntimeException(e);
-                                }
+                            QueryResult result = null;
+                            if (queryText != null) {
+                                result = db.executeQuery(queryText, subgraph.startVertexId);
                             } else {
                                 db.subgraph(query, subgraph);
-                                vertexCount = subgraph.getVertexCount();
-                                edgeCount = subgraph.getEdgeCount();
+                                result = new QueryResult(subgraph.getVertexCount(), subgraph.getEdgeCount());
                             }
-                            db.getMetrics().subgraphVertexCount.addAndGet(vertexCount);
-                            db.getMetrics().subgraphEdgeCount.addAndGet(edgeCount);
-                            db.getMetrics().subgraphWithEdgesCount.addAndGet(edgeCount > 0 ? 1 : 0);
+                            db.getMetrics().subgraphVertexCount.addAndGet(result.getVertexCount());
+                            db.getMetrics().subgraphEdgeCount.addAndGet(result.getEdgeCount());
+                            db.getMetrics().subgraphWithEdgesCount.addAndGet(result.getEdgeCount() > 0 ? 1 : 0);
                         });
                         readCounter.addAndGet(1);
                     } catch (Exception e) {

@@ -68,3 +68,26 @@ Build
 
 Run on Spark
 ---------------
+Here is one example on how to run spark
+```
+#!/usr/bin/env bash
+
+cd ugsb
+
+YARN_CONF_DIR=/etc/hadoop/conf /home/spark-2.1.0/bin/spark-submit \
+--class "com.uber.ugb.Benchmark" \
+--master yarn \
+--deploy-mode client \
+--driver-memory 6G \
+--executor-memory 6G \
+--executor-cores 2 \
+--driver-cores 2 \
+--num-executors 10 \
+--conf spark.yarn.executor.memoryOverhead=2048 \
+--driver-class-path '/etc/hive/conf' \
+build/libs/ugb-all-0.0.15.jar \
+"-db com.uber.ugb.db.cassandra.CassandraDB -w -g benchdata/graphs/trips -b benchdata/workloads/workloada -r -s"
+
+echo $?
+
+```

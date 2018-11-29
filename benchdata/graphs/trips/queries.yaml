@@ -4,7 +4,8 @@ queries:
   startVertexLabel: users.User
   #    .outE('requested').order().by('ts', decr).limit(10).subgraph('s').outV()
   #    .inE('drove_for').inV()
-  gremlinQuery: >
+  queryType: gremlin
+  queryText: >
     g.V(x)
     .outE('trips.requested').subgraph('s').outV()
     .outE('trips.droveFor').subgraph('s').outV()

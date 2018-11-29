@@ -17,8 +17,11 @@ public class QueriesSpec {
         @JsonProperty("startVertexLabel")
         public String startVertexLabel;
 
-        @JsonProperty("gremlinQuery")
-        public String gremlinQuery;
+        @JsonProperty("queryText")
+        public String queryText;
+
+        @JsonProperty("queryType")
+        public String queryType;
 
         @JsonProperty("steps")
         public Step[] steps;

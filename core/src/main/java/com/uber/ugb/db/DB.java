@@ -115,4 +115,18 @@ public abstract class DB implements Serializable {
         return key;
     }
 
+    /**
+     * Implement this and executeQuery() if native query executions can be supported.
+     */
+    public String supportedQueryType() {
+        return "";
+    }
+
+    /**
+     * Implement this and supportedQueryType() if native query executions can be supported.
+     */
+    public QueryResult executeQuery(String query, Object startVertexId) {
+        return null;
+    }
+
 }

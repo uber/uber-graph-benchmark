@@ -6,12 +6,13 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import javax.script.Bindings;
 import javax.script.ScriptException;
 import java.util.Iterator;
 
-public class GremlinDB extends DB implements QueryCapability.SupportGremlin {
+public class GremlinDB extends DB {
 
     private final GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
     private Graph graph;
@@ -68,17 +69,6 @@ public class GremlinDB extends DB implements QueryCapability.SupportGremlin {
     }
 
     @Override
-    public Object queryByGremlin(String gremlinQuery, Object... bindVariables) throws ScriptException {
-        Bindings bindings = engine.createBindings();
-        bindings.put("g", graph.traversal());
-        for (int i = 0; i < bindVariables.length - 1; i += 2) {
-            bindings.put(bindVariables[i].toString(), bindVariables[i + 1]);
-        }
-
-        return engine.eval(gremlinQuery, bindings);
-    }
-
-    @Override
     public Status subgraph(QueriesSpec.Query query, Subgraph subgraph) {
 
         return Status.NOT_IMPLEMENTED;
@@ -91,6 +81,34 @@ public class GremlinDB extends DB implements QueryCapability.SupportGremlin {
             graph.tx().commit();
         }
         return Status.OK;
+    }
+
+    @Override
+    public String supportedQueryType() {
+        return "gremlin";
+    }
+
+    @Override
+    public QueryResult executeQuery(String query, Object startVertexId) {
+        try {
+            TinkerGraph g2 = (TinkerGraph) this.queryByGremlin(query, "x", startVertexId);
+            int vertexCount = g2.traversal().V().count().next().intValue();
+            int edgeCount = g2.traversal().E().count().next().intValue();
+            return new QueryResult(vertexCount, edgeCount);
+        } catch (ScriptException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Object queryByGremlin(String gremlinQuery, Object... bindVariables) throws ScriptException {
+        Bindings bindings = engine.createBindings();
+        bindings.put("g", graph.traversal());
+        for (int i = 0; i < bindVariables.length - 1; i += 2) {
+            bindings.put(bindVariables[i].toString(), bindVariables[i + 1]);
+        }
+
+        return engine.eval(gremlinQuery, bindings);
     }
 
 }
