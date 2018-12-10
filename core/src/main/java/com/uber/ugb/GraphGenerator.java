@@ -5,14 +5,13 @@ import com.uber.ugb.db.DB;
 import com.uber.ugb.db.DBException;
 import com.uber.ugb.db.ParallelWriteDBWrapper;
 import com.uber.ugb.measurement.Metrics;
+import com.uber.ugb.model.BucketedEdgeDistribution;
 import com.uber.ugb.model.EdgeModel;
 import com.uber.ugb.model.GraphModel;
 import com.uber.ugb.model.PropertyModel;
 import com.uber.ugb.model.SimpleProperty;
-import com.uber.ugb.model.distro.DegreeDistribution;
 import com.uber.ugb.schema.QualifiedName;
 import com.uber.ugb.util.ProgressReporter;
-import com.uber.ugb.util.RandomPermutation;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -21,7 +20,6 @@ import scala.Tuple2;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -297,29 +295,15 @@ public class GraphGenerator implements Serializable {
 
         long domainSize = vertexPartition.get(domainLabel);
         long rangeSize = vertexPartition.get(rangeLabel);
+
+        BucketedEdgeDistribution domainBucketDistribution = new BucketedEdgeDistribution(
+            edgeStats.getDomainIncidence(), domainSize, random);
+        BucketedEdgeDistribution rangeBucketDistribution = new BucketedEdgeDistribution(
+            edgeStats.getRangeIncidence(), rangeSize, random);
+
+        // prefix format of the print out
         long domainExistCount = (long) (edgeStats.getDomainIncidence().getExistenceProbability() * domainSize);
         long rangeExistCount = (long) (edgeStats.getRangeIncidence().getExistenceProbability() * rangeSize);
-
-        int domainBucketWidth = domainSize > 1024 * 1024 ? 1024 : 1;
-        int rangeBucketWidth = rangeSize > 1024 * 1024 ? 1024 : 1;
-        int domainBucketCount = (int) (domainSize / domainBucketWidth);
-        int rangeBucketCount = (int) (rangeSize / rangeBucketWidth);
-
-        // subset of domain vertices and range vertices which will have at least one edge of the given label
-        RandomSubset<Integer> domainSubset = createRandomSubset(
-            new DirectSet(domainBucketCount), edgeStats.getDomainIncidence().getExistenceProbability(), random);
-        RandomSubset<Integer> rangeSubset = createRandomSubset(
-            new DirectSet(rangeBucketCount), edgeStats.getRangeIncidence().getExistenceProbability(), random);
-
-        // domain and range distributions
-        DegreeDistribution.Sample domainSample
-            = edgeStats.getDomainIncidence().getDegreeDistribution().createSample(domainSubset.size(), random);
-        DegreeDistribution.Sample rangeSample
-            = edgeStats.getRangeIncidence().getDegreeDistribution().createSample(rangeSubset.size(), random);
-
-        WeightedBuckets domainWeightedBuckets = new WeightedBuckets(domainSample, domainSubset.size());
-        WeightedBuckets rangeWeightedBuckets = new WeightedBuckets(rangeSample, rangeSubset.size());
-
         String prefix = String.format("gen %s(%d/%d):%s:%s(%d/%d)",
             domainLabel, domainExistCount, domainSize,
             edgeLabel,
@@ -329,18 +313,9 @@ public class GraphGenerator implements Serializable {
         ProgressReporter progressReporter = new ProgressReporter(prefix, start, stop, 102400L);
 
         for (long edgeCount = start; edgeCount < stop; edgeCount++) {
-            // pick tail
-            int domainBucket = domainWeightedBuckets.locate(random);
-            int tbd = random.nextInt(domainBucketWidth);
-            long tailIndex = (long) domainSubset.get(domainBucket) * domainBucketWidth + tbd;
-
-            // pick head
-            int rangeBucket = rangeWeightedBuckets.locate(random);
-            int hbd = random.nextInt(domainBucketWidth);
-            long headIndex = rangeSubset.get(rangeBucket) * rangeBucketWidth + hbd;
-
+            long tailIndex = domainBucketDistribution.pickOne();
+            long headIndex = rangeBucketDistribution.pickOne();
             createEdge(edgeLabel, domainLabel, tailIndex, rangeLabel, headIndex, graph);
-
             progressReporter.maybeReport(edgeCount);
         }
 
@@ -382,115 +357,8 @@ public class GraphGenerator implements Serializable {
         incrementBatchCounter(graph);
     }
 
-    private <T> RandomSubset<T> createRandomSubset(final IndexSet<T> base,
-                                                   final double probability, final Random random) {
-        int size = (int) (probability * base.size());
-        return new RandomSubset<>(base, size, random);
-    }
-
-    public interface IndexSet<T> {
-        int size();
-
-        T get(int index);
-    }
-
     private interface RunnableWithException<E extends Exception> {
         void run() throws E;
     }
 
-    public static class RandomSubset<T> implements IndexSet<T> {
-        private final IndexSet<T> base;
-        private final int[] permutation;
-        private final int size;
-
-        RandomSubset(final IndexSet<T> base, final int size, final Random random) {
-            this.base = base;
-            this.permutation = new RandomPermutation(base.size(), random).getPermutation();
-            this.size = size;
-        }
-
-        @Override
-        public int size() {
-            return size;
-        }
-
-        @Override
-        public T get(final int index) {
-            Preconditions.checkArgument(index < size);
-            return base.get(permutation[index]);
-        }
-    }
-
-    public static class IntervalSet implements IndexSet<Integer> {
-        private final int firstIndex;
-        private final int size;
-
-        public IntervalSet(int firstIndex, int size) {
-            this.firstIndex = firstIndex;
-            this.size = size;
-        }
-
-        @Override
-        public int size() {
-            return size;
-        }
-
-        @Override
-        public Integer get(int index) {
-            Preconditions.checkArgument(index < size);
-            return firstIndex + index;
-        }
-    }
-
-    public static class DirectSet implements IndexSet<Integer> {
-        private final int size;
-
-        public DirectSet(int size) {
-            this.size = size;
-        }
-
-        @Override
-        public int size() {
-            return size;
-        }
-
-        @Override
-        public Integer get(int index) {
-            Preconditions.checkArgument(index < size);
-            return index;
-        }
-    }
-
-    private static class WeightedBuckets {
-        double[] accumulatedWeights;
-        double totalWeight;
-
-        public WeightedBuckets(DegreeDistribution.Sample sample, int bucketCount) {
-            double[] weights = new double[bucketCount];
-            accumulatedWeights = new double[bucketCount];
-            totalWeight = 0;
-            for (int i = 0; i < bucketCount; i++) {
-                weights[i] = sample.getNextDegree();
-                totalWeight += weights[i];
-            }
-            double currentWeight = 0;
-            for (int i = 0; i < bucketCount; i++) {
-                currentWeight += weights[i];
-                accumulatedWeights[i] = currentWeight / totalWeight;
-            }
-        }
-
-        public int locate(Random random) {
-            double r = random.nextDouble();
-            int x = Arrays.binarySearch(this.accumulatedWeights, r);
-            if (x < 0) {
-                x = (-x) - 1;
-            }
-            return x;
-        }
-
-        public double getTotalWeight() {
-            return totalWeight;
-        }
-    }
 }

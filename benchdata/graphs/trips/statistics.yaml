@@ -31,8 +31,6 @@ edges:
       existenceProbability: 0.2315
     in:
       existenceProbability: 1.0000
-      logMean: -636.5463
-      logSD: 17.5147
   - type: trips.requested
     out:
       existenceProbability: 0.0304

@@ -6,12 +6,12 @@ public class EdgeModel implements Serializable {
     private static final long serialVersionUID = 5511473326817973109L;
 
     private final Incidence domainIncidence;
-    private final Incidence randeIncidence;
+    private final Incidence rangeIncidence;
 
     public EdgeModel(final Incidence domainIncidence,
-              final Incidence randeIncidence) {
+              final Incidence rangeIncidence) {
         this.domainIncidence = domainIncidence;
-        this.randeIncidence = randeIncidence;
+        this.rangeIncidence = rangeIncidence;
     }
 
     public Incidence getDomainIncidence() {
@@ -19,6 +19,6 @@ public class EdgeModel implements Serializable {
     }
 
     public Incidence getRangeIncidence() {
-        return randeIncidence;
+        return rangeIncidence;
     }
 }

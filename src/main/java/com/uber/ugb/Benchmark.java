@@ -90,6 +90,7 @@ public class Benchmark {
             GraphModelBuilder graphModelBuilder = new GraphModelBuilder();
             graphModelBuilder.addConceptDirectory(new File(graphDir, "concepts"));
             graphModelBuilder.setStatistics(new File(graphDir, "statistics.yaml"));
+            graphModelBuilder.setDistributionDirectory(new File(graphDir, "distributions"));
             GraphModel model = graphModelBuilder.build();
             GraphGenerator gen = new GraphGenerator(model);
             gen.setRandomSeed(seed);

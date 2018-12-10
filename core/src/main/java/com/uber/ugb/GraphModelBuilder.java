@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -30,9 +31,11 @@ public class GraphModelBuilder {
 
     List<InputStream> conceptInputStreams;
     InputStream statisticsInputStream;
+    Map<String, String> csvDistribution;
 
     public GraphModelBuilder() {
         this.conceptInputStreams = new ArrayList<>();
+        this.csvDistribution = new HashMap<>();
     }
 
     public void addConceptDirectory(File graghConceptDir) throws IOException, InvalidSchemaException {
@@ -48,6 +51,22 @@ public class GraphModelBuilder {
         }
     }
 
+    public void setDistributionDirectory(File edgeDistrbutionDir) throws IOException, InvalidSchemaException {
+        if (!edgeDistrbutionDir.isDirectory()) {
+            throw new InvalidSchemaException("not a directory: " + edgeDistrbutionDir);
+        }
+        for (File file : edgeDistrbutionDir.listFiles()) {
+            String fileName = file.getName();
+            if (fileName.endsWith(".csv")) {
+                setEdgeDistribution(fileName.substring(0, fileName.length() - ".csv".length()),
+                    new String(Files.readAllBytes(file.toPath()))
+                );
+            } else if (file.isDirectory()) {
+                setDistributionDirectory(file);
+            }
+        }
+    }
+
     public void addConcept(InputStream concept) {
         this.conceptInputStreams.add(concept);
     }
@@ -58,6 +77,10 @@ public class GraphModelBuilder {
 
     public void setStatisticsInputStream(InputStream statisticsInputStream) {
         this.statisticsInputStream = statisticsInputStream;
+    }
+
+    public void setEdgeDistribution(String edgeLabel, String csvContent) {
+        this.csvDistribution.put(edgeLabel, csvContent);
     }
 
     public GraphModel build() throws IOException, InvalidSchemaException {
@@ -100,18 +123,34 @@ public class GraphModelBuilder {
         LinkedHashMap<QualifiedName, EdgeModel> edgeModel = new LinkedHashMap<>();
         for (StatisticsSpec.EdgeDistribution edgeDistribution : statisticsSpec.edges) {
             RelationType relationType = vocabulary.getRelationType(new QualifiedName(edgeDistribution.type));
-            edgeModel.put(new QualifiedName(edgeDistribution.type),
-                new EdgeModel(
-                    new Incidence(
-                        relationType.getFrom().getName(),
-                        edgeDistribution.out.existenceProbability,
-                        edgeDistribution.out.toDegreeDistribution()),
-                    new Incidence(
-                        relationType.getTo().getName(),
-                        edgeDistribution.in.existenceProbability,
-                        edgeDistribution.in.toDegreeDistribution())
-                )
-            );
+            String csvContnet = this.csvDistribution.get(edgeDistribution.type);
+            if (csvContnet == null) {
+                edgeModel.put(new QualifiedName(edgeDistribution.type),
+                    new EdgeModel(
+                        new Incidence(
+                            relationType.getFrom().getName(),
+                            edgeDistribution.out.existenceProbability,
+                            edgeDistribution.out.toDegreeDistribution()),
+                        new Incidence(
+                            relationType.getTo().getName(),
+                            edgeDistribution.in.existenceProbability,
+                            edgeDistribution.in.toDegreeDistribution())
+                    )
+                );
+            } else {
+                edgeModel.put(new QualifiedName(edgeDistribution.type),
+                    new EdgeModel(
+                        new Incidence(
+                            relationType.getFrom().getName(),
+                            edgeDistribution.out.existenceProbability,
+                            csvContnet, "out", edgeDistribution.type),
+                        new Incidence(
+                            relationType.getTo().getName(),
+                            edgeDistribution.in.existenceProbability,
+                            csvContnet, "in", edgeDistribution.type)
+                    )
+                );
+            }
         }
         return edgeModel;
     }
