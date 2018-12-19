@@ -9,3 +9,4 @@ if [ -n "${NEXT_VERSION}" ]; then
 fi
 
 ./gradlew clean :core:release --stacktrace ${release_opts} -x updateVersion -x commitNewVersion
+./gradlew clean release --stacktrace ${release_opts} -x updateVersion -x commitNewVersion
