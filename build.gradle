@@ -89,6 +89,9 @@ shadowJar {
     }
 }
 
+shadowDistZip.classifier = 'shadow'
+shadowDistTar.classifier = 'shadow'
+
 // the following are uber specific
 repositories {
     maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-release-local/' }
