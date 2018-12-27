@@ -48,6 +48,10 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
+processResources {
+    from('benchdata') { into 'benchdata' }
+}
+
 subprojects {
     apply plugin: 'java'
 
@@ -70,6 +74,8 @@ task execute(type: JavaExec) {
 
 shadowJar {
     // Output to build/libs/<baseName-<version>>.jar
+    dependsOn processResources
+
     zip64 true
     baseName = 'ugb-all'
     classifier = null
