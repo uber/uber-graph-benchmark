@@ -42,6 +42,7 @@ dependencies {
     compile project(':core')
     compile project(':redis')
     compile project(':cassandra')
+    compile project(':hbase')
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 

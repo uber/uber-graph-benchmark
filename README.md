@@ -1,6 +1,8 @@
 Uber Graph Benchmark (UGB)
 ====================================
 
+Slides: [Uber Graph Benchmark Framwork](./UberGraphBenchmarkFramework.pdf)
+
 Getting Started
 ---------------
 
