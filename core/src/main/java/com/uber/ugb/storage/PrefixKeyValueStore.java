@@ -34,6 +34,15 @@ public interface PrefixKeyValueStore extends KeyValueStore {
             this.keySuffix = keySuffix;
             this.value = value;
         }
+
+        public PrefixQueriedRow(byte[] keySuffix, int keySuffixOffset, int keySuffixLength,
+                                byte[] value, int valueOffset, int valueLength) {
+            this.keySuffix = new byte[keySuffixLength];
+            System.arraycopy(keySuffix, keySuffixOffset, this.keySuffix, 0, keySuffixLength);
+            this.value = new byte[valueLength];;
+            System.arraycopy(value, valueOffset, this.value, 0, valueLength);
+        }
+
     }
 
 }

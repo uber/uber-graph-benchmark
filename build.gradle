@@ -19,10 +19,18 @@
 import java.text.SimpleDateFormat
 
 plugins {
+    id 'net.researchgate.release' version '2.4.0'
     id 'java'
     id 'application'
     id "com.github.johnrengelman.shadow" version "4.0.2"
+    id 'java-library'
+    id 'maven'
+    id 'maven-publish'
 }
+apply plugin: 'net.researchgate.release'
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 group 'com.uber.ugb'
 mainClassName = 'com.uber.ugb.Benchmark'
@@ -30,18 +38,19 @@ mainClassName = 'com.uber.ugb.Benchmark'
 
 sourceCompatibility = 1.8
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     compile project(':core')
     compile project(':redis')
     compile project(':cassandra')
+    compile project(':hbase')
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+processResources {
+    from('benchdata') { into 'benchdata' }
 }
 
 subprojects {
@@ -66,6 +75,8 @@ task execute(type: JavaExec) {
 
 shadowJar {
     // Output to build/libs/<baseName-<version>>.jar
+    dependsOn processResources
+
     zip64 true
     baseName = 'ugb-all'
     classifier = null
@@ -84,3 +95,49 @@ shadowJar {
         attributes 'Build-Jdk': System.getProperty('java.version')
     }
 }
+
+shadowDistZip.classifier = 'shadow'
+shadowDistTar.classifier = 'shadow'
+
+// the following are uber specific
+repositories {
+    maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-release-local/' }
+    maven { url 'http://artifactory.uber.internal:4587/artifactory/libs-snapshot-local/' }
+    mavenCentral()
+}
+
+release {
+    versionPropertyFile = "$rootDir/gradle.properties"
+    tagTemplate = '$name-$version'
+}
+
+// ----------------------
+// Build & Release
+// ----------------------
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            uniqueVersion = false
+            def artifactoryUserName = System.getenv('ARTIFACTORY_USERNAME')
+            def artifactoryPassword = System.getenv('ARTIFACTORY_PASSWORD')
+            if (artifactoryUserName && artifactoryPassword) {
+                def remoteRepositoryBucket = project.version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+                repository(url: "http://artifactory.uber.internal:4587/artifactory/${remoteRepositoryBucket}/") {
+                    authentication(userName: artifactoryUserName, password: artifactoryPassword)
+                }
+            }
+        }
+    }
+}
+
+afterReleaseBuild.dependsOn uploadArchives

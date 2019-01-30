@@ -1,5 +1,4 @@
 plugins {
-    id 'net.researchgate.release' version '2.4.0'
     id 'java-library'
     id 'maven'
     id 'maven-publish'

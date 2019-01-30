@@ -8,4 +8,5 @@ if [ -n "${NEXT_VERSION}" ]; then
         release_opts="${release_opts} -Prelease.newVersion=${NEXT_VERSION}"
 fi
 
-./gradlew clean :core:release --stacktrace ${release_opts} -x updateVersion -x commitNewVersion
+# ./gradlew clean :core:release --stacktrace ${release_opts} -x updateVersion -x commitNewVersion
+./gradlew clean release --stacktrace ${release_opts} -x updateVersion -x commitNewVersion
